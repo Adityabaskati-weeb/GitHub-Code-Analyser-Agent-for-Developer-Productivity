@@ -1,43 +1,141 @@
+"""
+src/nodes/analyze_repo_node.py
+================================
+Query-aware file selection node with smart ranking and hard caps.
+
+Selection pipeline
+------------------
+1. Skip minified files (*.min.js, *.min.css, *.map, …)
+2. Skip files that exceed MAX_SIZE_KB
+3. Score every remaining file by relevance to the query
+4. Sort by score descending, keep top MAX_SELECTED_FILES
+"""
+
+from __future__ import annotations
+
 import re
 from langchain_core.messages import SystemMessage, HumanMessage
 
 from src.utils.flatten_tree import flatten_tree
-from src.config.settings import IMPORTANT_EXT, IMPORTANT_NAMES
+from src.utils.logger import get_logger
+from src.config.settings import (
+    IMPORTANT_EXT,
+    IMPORTANT_NAMES,
+    MAX_SELECTED_FILES,
+    MAX_SIZE_KB,
+    SKIP_PATTERNS,
+)
 
-def matches_keywords(path, keywords):
-        path_lower = path.lower()
-        return any(kw.lower() in path_lower for kw in keywords)
+log = get_logger(__name__)
 
-def add_unique(meta, selected_list, selected_paths: set):
-    p = meta["path"].lower()
-    if p not in selected_paths:
-        selected_paths.add(p)
-        selected_list.append(meta)
+# ── Static/binary extensions that carry no semantic value ──────────────────
+_SKIP_EXTENSIONS = {
+    ".css", ".js",        # only if not caught by SKIP_PATTERNS first
+    ".html", ".htm",      # kept out by default unless query-matched
+    ".svg", ".ico", ".woff", ".woff2", ".ttf", ".eot", ".otf",
+    ".png", ".jpg", ".jpeg", ".gif", ".bmp", ".webp",
+    ".zip", ".tar", ".gz", ".rar",
+    ".lock",              # package-lock.json, yarn.lock etc.
+}
+
+# Extensions whose content is worth parsing (override _SKIP_EXTENSIONS)
+_KEEP_EXTENSIONS = set(IMPORTANT_EXT)
+
+
+def _is_skippable(path: str, ext: str) -> bool:
+    """Return True if this file should never be selected."""
+    lp = path.lower()
+    # 1. Minified / source-map patterns
+    if any(lp.endswith(pat) for pat in SKIP_PATTERNS):
+        return True
+    # 2. Binary / static-asset extensions that aren't in KEEP list
+    if ext in _SKIP_EXTENSIONS and ext not in _KEEP_EXTENSIONS:
+        return True
+    return False
+
+
+def _score(meta: dict, query_keywords: list[str], intent: str,
+           keywords: list[str], targets: dict) -> int:
+    """
+    Return a relevance score for *meta*.
+    Higher = more relevant = selected first when capping.
+    """
+    path = meta["path"].lower()
+    ext  = meta["ext"].lower()
+    score = 0
+
+    # Tier 1 — always-important names (README, main, config, …)
+    if any(name in path for name in IMPORTANT_NAMES):
+        score += 40
+
+    # Tier 2 — query keyword matches in path
+    kw_hits = sum(1 for k in query_keywords if k in path)
+    score += kw_hits * 20
+
+    # Tier 3 — intent-specific boosts
+    if intent == "function_usage":
+        fn = targets.get("function", "")
+        if fn and fn.lower() in path:
+            score += 30
+        if any(kw.lower() in path for kw in keywords):
+            score += 15
+
+    elif intent == "type_lookup":
+        var = targets.get("variable", "")
+        if var and var.lower() in path:
+            score += 30
+        if any(kw.lower() in path for kw in keywords):
+            score += 15
+
+    elif intent == "directory_question":
+        directory = targets.get("directory", "")
+        if directory and path.startswith(directory.lower()):
+            score += 35
+
+    elif intent == "pipeline_flow":
+        pipeline_markers = ["train", "main", "pipeline", "runner", "engine"]
+        if any(m in path for m in pipeline_markers):
+            score += 25
+
+    elif intent == "architecture_summary":
+        if path.count("/") <= 1 and ext == ".py":
+            score += 20
+
+    # Tier 4 — important extension but no keyword match
+    if ext in _KEEP_EXTENSIONS:
+        score += 5
+
+    # Penalise deeply nested paths (less likely to be core)
+    depth = path.count("/")
+    score -= depth * 2
+
+    return score
+
 
 async def analyze_tree_node(state: dict) -> dict:
     """
     Query-aware Analyze Node.
+
     Decides which files to parse deeply based on:
-      - repo metadata
-      - user query (latest HumanMessage)
-      - file importance (README, setup, main, config, etc.)
-      - file sizes and extensions
+      - user query intent, keywords, targets
+      - file importance (README, setup, main, config, …)
+      - file extension (skip minified, binary, static assets)
+      - file size   (skip files > MAX_SIZE_KB)
+    Caps selection at MAX_SELECTED_FILES using a relevance score.
     """
+    repo_tree = state.get("repo_tree")
+    intent    = state.get("intent", "")
+    keywords  = state.get("keywords", [])
+    targets   = state.get("targets", {})
 
-    # print("Initializing Analyze Tree Node...")
-
-    repo_tree = state.get("repo_tree", None)
-    intent = state.get("intent")
-    keywords = state.get("keywords", [])
-    targets = state.get("targets", {})
-    
     if not repo_tree:
         return {
-                "selected_files": [],
-                "unselected_files": [],
-                "messages": state.get("messages", []) + [
-                    SystemMessage(content="No repository tree available.")
-                ]}
+            "selected_files": [],
+            "unselected_files": [],
+            "messages": state.get("messages", []) + [
+                SystemMessage(content="No repository tree available.")
+            ],
+        }
 
     flattened = flatten_tree(repo_tree)
 
@@ -49,73 +147,65 @@ async def analyze_tree_node(state: dict) -> dict:
 
     query_keywords = re.findall(r"[a-zA-Z_]+", user_query)
 
-    selected = list(state.get("selected_files") or [])
-    selected_paths = set()
-    unselected = list(state.get("unselected_files") or [])
+    # ── Pass 1: hard filters ─────────────────────────────────────────────
+    candidates: list[dict] = []
+    hard_skipped: list[str] = []
 
     for meta in flattened:
-        path = meta["path"].lower()
-        ext = meta["ext"].lower()
+        path = meta["path"]
+        ext  = meta.get("ext", "").lower()
+        size = meta.get("size_kb", 0)
 
-        selected_files = False
+        # Skip minified / static-asset files
+        if _is_skippable(path, ext):
+            hard_skipped.append(f"{path} [minified/asset]")
+            log.debug("SKIP (asset)   %s", path)
+            continue
 
-        # 1) Always include important names
-        if any(name in path for name in IMPORTANT_NAMES):
-            selected_files = True
+        # Skip oversized files
+        if size > MAX_SIZE_KB:
+            hard_skipped.append(f"{path} [size {size} KB > {MAX_SIZE_KB} KB]")
+            log.debug("SKIP (size)    %s  %.1f KB", path, size)
+            continue
 
-        # 2) Match keywords from user query
-        elif any(k in path for k in query_keywords):
-            selected_files = True
+        candidates.append(meta)
 
-        # 3) Keep primary code/docs
-        elif ext in IMPORTANT_EXT:
-            selected_files = True
+    # ── Pass 2: score and rank ────────────────────────────────────────────
+    scored = [
+        (_score(m, query_keywords, intent, keywords, targets), m)
+        for m in candidates
+    ]
+    scored.sort(key=lambda x: x[0], reverse=True)
 
-        # 4) Intent-specific boosts
-        if intent == "function_usage":
-            fn = targets.get("function")
-            if fn and fn.lower() in path:
-                selected_files = True
-            elif matches_keywords(path, keywords):
-                selected_files = True
+    # ── Pass 3: apply cap ────────────────────────────────────────────────
+    selected_scored = scored[:MAX_SELECTED_FILES]
+    overflow        = scored[MAX_SELECTED_FILES:]
 
-        elif intent == "type_lookup":
-            var = targets.get("variable")
-            if var and var.lower() in path:
-                selected_files = True
-            elif matches_keywords(path, keywords):
-                selected_files = True
+    selected   = [m for _, m in selected_scored]
+    unselected = (
+        hard_skipped                          # already strings
+        + [m["path"] for _, m in overflow]   # paths of capped files
+    )
 
-        elif intent == "directory_question":
-            directory = targets.get("directory")
-            if directory and path.startswith(directory):
-                selected_files = True
-
-        elif intent == "pipeline_flow":
-            pipeline_markers = ["train", "main", "pipeline", "runner", "engine"]
-            if any(m in path for m in pipeline_markers):
-                selected_files = True
-
-        elif intent == "architecture_summary":
-            if path.count("/") <= 1 and path.endswith(".py"):
-                selected_files = True
-
-        elif intent == "high_level_summary":
-            if matches_keywords(path, keywords):
-                selected_files = True
-
-        # Final push to lists (no duplicates)
-        if selected_files:
-            add_unique(meta, selected, selected_paths)
-        else:
-            unselected.append(meta)
-
-    print(f"\nSelected {len(selected)} files, unselected {len(unselected)}.")
+    log.info(
+        "File selection: %d candidates, %d selected (cap=%d), %d hard-skipped, %d capped",
+        len(candidates), len(selected), MAX_SELECTED_FILES,
+        len(hard_skipped), len(overflow),
+    )
+    print(
+        f"Selected {len(selected)}/{len(flattened)} files "
+        f"(cap={MAX_SELECTED_FILES}, skipped {len(hard_skipped)} asset/oversized)."
+    )
 
     return {
         "selected_files": selected,
         "unselected_files": unselected,
         "messages": state.get("messages", []) + [
-            SystemMessage(content=f"Selected {len(selected)} files based on query: '{user_query}'.")
-        ]
+            SystemMessage(
+                content=(
+                    f"Selected {len(selected)} files based on query "
+                    f"(capped at {MAX_SELECTED_FILES})."
+                )
+            )
+        ],
     }

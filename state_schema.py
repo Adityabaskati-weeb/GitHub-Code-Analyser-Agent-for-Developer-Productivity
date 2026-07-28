@@ -1,6 +1,6 @@
 # state_schema.py
 
-from typing import Annotated, Any, Sequence, TypedDict, Union, Dict, List
+from typing import Annotated, Any, Optional, Sequence, TypedDict, Union, Dict, List
 from langgraph.graph.message import add_messages
 from langchain_core.messages import BaseMessage
 
@@ -8,11 +8,13 @@ from langchain_core.messages import BaseMessage
 class Agent_State(TypedDict):
     """
     LangGraph state structure for the Repo Analyzer + Summarizer Agent.
-    
+
     This is the central shared memory between all nodes.
     """
     messages: Annotated[Sequence[BaseMessage], add_messages]
     url: Union[str, None]
+    branch: Optional[str]          # Git branch to analyse; None → auto-detect
+    refresh_cache: Optional[bool]  # True → bypass disk cache for this run
     repo_tree: Dict[str, Any]
     global_context: Union[str, None]
     selected_files: List[Dict[str, Any]]

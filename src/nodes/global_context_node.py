@@ -1,76 +1,98 @@
-import requests
+"""
+src/nodes/global_context_node.py
+==================================
+Builds a high-level natural-language summary of the repository structure.
+
+File snippet fetches are routed through the cached :func:`fetch_blob_content`
+utility (backed by the on-disk cache under ``.cache/``) so repeated runs do
+not hit the GitHub network.
+"""
+
+from __future__ import annotations
+
 from langchain_core.messages import SystemMessage, HumanMessage
+
 from src.utils.flatten_tree import flatten_tree
+from src.utils.fetch_blob import fetch_blob_content
+from src.utils.logger import get_logger
 
-async def global_context_node(state: dict)->dict: #AgentState)->AgentState
-    """
-    This node builds a global overview of the repository based 
-    on metadata tree fetched from GitRepoParser object. 
-    Produces a brief summary of repo structure, key folders and 
-    relationships.
-    """
+log = get_logger(__name__)
 
-    # print("-----Initializing Global Context Node-----")
-    # print("state variable", state)
+
+async def global_context_node(state: dict) -> dict:
+    """
+    Builds a global overview of the repository based on the metadata tree
+    fetched from GitRepoParser.
+
+    Produces a brief summary of repo structure, key folders and relationships.
+    File snippet fetches use the shared disk cache (refresh honoured via state).
+    """
     repo_tree = state.get("repo_tree")
-    # print(f"repo_tree contains: {repo_tree}")
+    refresh   = bool(state.get("refresh_cache", False))
+
     if not repo_tree:
-        print("No repo tree found in the state")
+        log.warning("No repo tree found in state; skipping global context.")
         return {"global_context": "No repo structure available"}
-    
+
     flattened = flatten_tree(repo_tree)
-    # print("flattened tree struture: ", flattened)
-    imp_file = [
-        f for f in flattened if any(
-            kw in f["path"].lower() for kw in [
-                "README", "setup", "main", "app", "requirements", "scripts", "configs"
-            ]
+
+    # Select up to 5 key files for snippet extraction
+    imp_files = [
+        f for f in flattened
+        if any(
+            kw in f["path"].lower()
+            for kw in ["readme", "setup", "main", "app", "requirements", "scripts", "configs"]
         )
     ][:5]
-    headers = []
 
-    for file_meta in imp_file:
+    headers: list[str] = []
+    for file_meta in imp_files:
+        url  = file_meta.get("url", "")
+        path = file_meta["path"]
+        if not url:
+            continue
         try:
-            response = requests.get(file_meta["url"], timeout=20)
-            response.raise_for_status()
-            decoded = response.text
-            snippet = "\n".join(decoded.splitlines()[:10])
-            headers.append(f"{file_meta['path']}:\n{snippet}\n")
-        except Exception as e:
-            headers.append(f"{file_meta['path']}: <Error in fetching snippet: {e}>")
-    
-    tree_summ = "\n".join([f"- {f['path']} ({f['ext']}, {f['size_kb']} KB)" for f in flattened[:60]])
+            # Uses the cached fetch — no redundant GitHub round-trips
+            raw     = fetch_blob_content(url, refresh=refresh)
+            snippet = "\n".join(raw.splitlines()[:10])
+            headers.append(f"{path}:\n{snippet}\n")
+            log.debug("snippet fetched (cached): %s", path)
+        except Exception as exc:  # noqa: BLE001
+            headers.append(f"{path}: <Error fetching snippet: {exc}>")
+            log.warning("Failed to fetch snippet for %s: %s", path, exc)
+
+    tree_summ = "\n".join(
+        f"- {f['path']} ({f['ext']}, {f['size_kb']} KB)"
+        for f in flattened[:60]
+    )
 
     prompt = f"""
-                You are an expert software architect. 
-                Below is a summary of a GitHub repository structure and small snippets from key files.
+You are an expert software architect.
+Below is a summary of a GitHub repository structure and small snippets from key files.
 
-                ### File Structure (first 60 files):
-                {tree_summ}
+### File Structure (first 60 files):
+{tree_summ}
 
-                ### Key File Headers:
-                {headers if headers else 'No key files found.'}
+### Key File Headers:
+{headers if headers else 'No key files found.'}
 
-                Please describe in 5–8 sentences:
-                1. The overall purpose of this repository.
-                2. The main components or modules and their likely roles.
-                3. How these modules might interact logically (e.g., data → model → evaluation).
-                4. Which parts appear to be core, supporting, or documentation.
-                """
-    system_msg = SystemMessage(
-                content= """
-                You are an expert github repository summarizer 
-                and provide insights on what functions and modules
-                are present in the repository and how they are connected
-                to each other. Helping fellow user in understanding 
-                the repository basically in leymann terms if possible.
-                            """)
-    human_msg = HumanMessage(content = prompt)
+Please describe in 5-8 sentences:
+1. The overall purpose of this repository.
+2. The main components or modules and their likely roles.
+3. How these modules might interact logically (e.g., data -> model -> evaluation).
+4. Which parts appear to be core, supporting, or documentation.
+"""
+
+    system_msg = SystemMessage(content=(
+        "You are an expert GitHub repository summariser. "
+        "Provide insights on what functions and modules are present and how they "
+        "connect to each other, in plain terms where possible."
+    ))
+    human_msg = HumanMessage(content=prompt)
 
     llm = state.get("llm")
-
     response = await llm.ainvoke([system_msg, human_msg])
     global_summ = response.content.strip()
 
-    # print("||| Global Context Summary created successfully |||")
+    log.info("Global context summary generated (%d chars).", len(global_summ))
     return {"global_context": global_summ}

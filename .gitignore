@@ -6,3 +6,9 @@ __pycache__/
 .mypy_cache/
 .ruff_cache/
 .tmp/
+
+# Disk cache (auto-populated at runtime)
+.cache/
+
+# Generated Q&A reports
+reports/

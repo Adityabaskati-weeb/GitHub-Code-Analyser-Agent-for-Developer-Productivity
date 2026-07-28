@@ -11,10 +11,48 @@ OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
 GITHUB_API_BASE = "https://api.github.com/repos/"
 GITHUB_API_RAW = "https://raw.githubusercontent.com/"
 
-# constants
-MAX_SIZE_KB = 500
-MAX_CHUNKS = 8  # manageable for prompt length
+# ── File-size limits ────────────────────────────────────────────────────────
+MAX_SIZE_KB = int(os.getenv("MAX_SIZE_KB", "200"))   # skip files larger than this
+
+# ── File-selection limits ───────────────────────────────────────────────────
+MAX_SELECTED_FILES = int(os.getenv("MAX_SELECTED_FILES", "20"))  # cap per query
+
+# ── Concurrency ─────────────────────────────────────────────────────────────
+MAX_CONCURRENT_FETCHES = int(os.getenv("MAX_CONCURRENT_FETCHES", "8"))
+
+# ── Prompt / LLM ────────────────────────────────────────────────────────────
+MAX_CHUNKS = 8          # fallback hard limit for merged context
 GOOGLE_MODEL = os.getenv("GOOGLE_MODEL", "gemini-2.5-flash")
+
+# ── Cache ───────────────────────────────────────────────────────────────────
+CACHE_DIR = os.getenv("CACHE_DIR", ".cache")
+
+# ── Retrieval ────────────────────────────────────────────────────────────────
+TOP_K = int(os.getenv("TOP_K", "8"))
+RETRIEVAL_MODE = os.getenv("RETRIEVAL_MODE", "lexical")   # "lexical" | "semantic"
+
+# ── Patterns to always skip ──────────────────────────────────────────────────
+# Minified files, source-maps, and other non-semantic assets
+SKIP_PATTERNS = [
+    ".min.js", ".min.css", ".css.map", ".js.map",
+    "-min.js", "-min.css",
+    ".bundle.js", ".chunk.js",
+]
+
+# Extensions excluded from the tree entirely
+EXCLUDE_EXT = [
+    ".gif", ".jpg", ".jpeg", ".png", ".mp4", ".svg", ".ico",
+    ".woff", ".woff2", ".ttf", ".eot", ".otf",   # fonts
+    ".pdf", ".zip", ".tar", ".gz",
+    ".gitignore", ".git", ".vscode", ".docker",
+    ".docstr", ".docstr.yaml", ".github",
+]
+
+# Extensions worth parsing deeply
+IMPORTANT_EXT = [".py", ".ipynb", ".md", ".json", ".yaml", ".toml", ".txt"]
+
+# File-name fragments that are always high-priority
+IMPORTANT_NAMES = ["readme", "setup", "main", "__init__", "app", "model", "config", "run"]
 
 
 def get_llm():
@@ -29,12 +67,3 @@ def get_llm():
         model=GOOGLE_MODEL,
         temperature=0.2,
     )
-
-#lists of constants
-EXCLUDE_EXT = [
-    ".gif", ".jpg", ".jpeg", ".png", ".mp4",
-    ".gitignore", ".git", ".pdf", ".vscode", ".docker",
-    ".docstr", ".docstr.yaml", ".github"
-]
-IMPORTANT_EXT = [".py", ".ipynb", ".md", ".json", ".yaml", ".toml"]
-IMPORTANT_NAMES = ["readme", "setup", "main", "__init__", "app", "model", "config"]
