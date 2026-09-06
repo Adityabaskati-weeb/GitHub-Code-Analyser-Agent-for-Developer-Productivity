@@ -50,11 +50,40 @@ Declare `reviewer_type` as `human` or `model-assisted`. For each row, read the r
 | 1 | Partially correct, but missing material information or usable citation support |
 | 2 | Correct, sufficiently complete, and supported by accurate source citations |
 
+For the published source-based review, a correct fact without usable citation support scores 1. A numerical answer that omits a material unit, or an answer that names an entry point without explaining the requested mechanism, is also partial. Wrong return types and unrelated behavior score 0. Additional irrelevant citations are recorded in reviewer notes; they do not erase an otherwise correct, directly supported answer. These judgments remain subjective and should be checked by an independent reviewer.
+
 ```bash
 python -m evaluation.answers --score reports/answer-review.json
 ```
 
 The scorer checks the dataset hash, all unique question IDs, integer scores and written reasons. It reports the declared reviewer type, mean score out of two and fraction scored two. It cannot verify a reviewer's judgment. Model-assisted review is not human validation. Prefer an independent human reviewer and report agreement for stronger evidence. The included tests use synthetic grades only to validate arithmetic; those are not model results.
+
+## Published local run
+
+On 2026-09-06, all 50 questions completed with `qwen2.5-coder:3b` using the `source_ids_v1` protocol. The [full run](../evaluation/live_answers.json) records raw JSON responses, retrieved source text, source-based review reasons, hardware, model digest and settings. Review was performed by Codex and is explicitly **model-assisted, not independent human grading**.
+
+Results: 19 fully correct/supported, 20 partial, 11 incorrect; mean 1.16/2 and full-credit fraction 38%. Citation locations were valid for 50/50 answers; there were zero abstentions. This is not a held-out test: the questions were authored from the source and the citation protocol was revised after an exploratory [nine-answer pilot](../evaluation/pilot_answers.json). The pilot is retained unscored, not used as a controlled before/after comparison.
+
+Representative failures:
+
+| Question | Observation | Interpretation |
+|---|---|---|
+| q02: corrupt cached JSON | Correct return value, citations omit its exception handler | Location validity is not evidence support |
+| q14: remove `.git` suffix | Describes SHA-256 hashing despite retrieved suffix-removal code | Generation error with relevant evidence available |
+| q20: empty chunker input | Says empty string instead of a list containing it | Wrong return type despite relevant evidence |
+| q23: IDF formula | Wrong formula and unrelated citation | Retrieval miss followed by unsupported generation |
+| q41: default top-K | Correct 8, supported by CLI help | Exact-anchor misses can still supply useful evidence |
+
+Observed generation wall time: median 48.151 s, nearest-rank P95 72.294 s, total 2476.798 s across the 50 calls. Hardware: Ryzen 5 5600H CPU, 15.4 GiB RAM, no GPU offload; Ollama 0.33.3, Q4_K_M 3.1B model, 8192-token context, temperature 0, maximum 1024 output tokens, 600-second request timeout. Some local validation work ran concurrently, so these timings are not an isolated performance benchmark. No paid model API calls were made.
+
+Inspect the review arithmetic without a model:
+
+```bash
+python -m evaluation.answers --score evaluation/live_answers.json
+python -m pytest tests/test_published_review.py -q
+```
+
+The artifact test reconstructs retrieved excerpts and rendered answers from raw source IDs. It verifies provenance and arithmetic, not the truth of the generated prose or the reviewer's judgment. A future improvement needs an independently annotated dataset, stronger abstention evaluation, and comparisons against other local models; the current results do not justify general accuracy or productivity claims.
 
 ## Validation environment
 

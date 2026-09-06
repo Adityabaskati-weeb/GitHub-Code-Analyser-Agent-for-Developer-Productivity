@@ -30,7 +30,7 @@ ollama pull qwen2.5-coder:3b
 python run_cli.py src --local --provider ollama -q "How does the disk cache handle corrupt JSON?"
 ```
 
-The model name is a starting configuration, not a hardware-specific recommendation or a quality benchmark result. Local inference has no per-call API fees, but uses your machine's memory, electricity, and storage; model downloads require internet access.
+The model name is a starting configuration, not a hardware-specific recommendation. A measured CPU run is documented below. Local inference has no per-call API fees, but uses your machine's memory, electricity, and storage; model downloads require internet access.
 
 For a public GitHub repository:
 
@@ -56,7 +56,7 @@ The default retrieved the labeled file for **44/50** questions and an excerpt co
 
 These are **retrieval metrics, not LLM answer accuracy**. The dataset is an authored regression set, not a blind held-out test; it does not establish performance across unseen repositories. It evaluates retrieval from the full frozen corpus, not GitHub's earlier file-selection stage. The frozen source intentionally contains old implementations; reference answers describe that snapshot.
 
-Read [per-question results and timings](evaluation/results.json), [benchmark methodology](docs/EVALUATION.md), and [engineering decisions](docs/DECISIONS.md). No live Ollama answer-quality result is claimed: its HTTP adapter is tested with simulated responses, while real-model grading remains a separate step.
+Read [per-question retrieval results and timings](evaluation/results.json), [benchmark methodology](docs/EVALUATION.md), and [engineering decisions](docs/DECISIONS.md).
 
 ```bash
 python -m evaluation.run --compare --output reports/comparison.json
@@ -64,6 +64,22 @@ python -m evaluation.run --check
 ```
 
 CI fails if file recall, evidence hit rate, or MRR drops below the checked-in baseline. Dataset and configuration changes require an explicit baseline review. Timing is reported but not gated because CI hardware varies.
+
+## Live local-model baseline
+
+All 50 questions were answered by **Qwen2.5-Coder 3B, Q4_K_M**, through Ollama 0.33.3 on a Ryzen 5 5600H CPU with 15.4 GiB system RAM. No hosted API was used.
+
+| Measure | Observed result |
+|---|---:|
+| Correct, complete and supported (score 2) | 19/50 (38%) |
+| Partially correct (score 1) | 20/50 |
+| Incorrect / failed answer (score 0) | 11/50 |
+| Mean rubric score | 1.16 / 2 |
+| Median / P95 generation wall time | 48.151 / 72.294 seconds |
+
+These are **model-assisted source-review judgments, not independent human validation**. This is one authored regression set, one model, and one run—not a held-out accuracy estimate. The [complete artifact](evaluation/live_answers.json) includes every raw model response, retrieved excerpt, grade and reason.
+
+All 50 answers had valid citation locations, but only 19 received full answer credit. The model never abstained, including on missing-evidence cases. This is a useful baseline with clear weaknesses, not a production-quality claim: source-ID rendering ensures appended locations come from retrieval, not that the prose is true. See [failure analysis and reproduction](docs/EVALUATION.md#published-local-run).
 
 ## Architecture
 

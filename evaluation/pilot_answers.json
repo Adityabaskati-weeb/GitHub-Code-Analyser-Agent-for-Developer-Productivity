@@ -1,0 +1,676 @@
+{
+  "model": "qwen2.5-coder:3b",
+  "dataset_sha256": "a6c3bd67e9b3696a70c74039714c21aeb7ff90387c63af566a080b3d8bb0e34c",
+  "reviewer_type": "unassigned",
+  "rubric": "0 incorrect/unsupported, 1 partially correct, 2 correct and supported; grade all 50.",
+  "rows": [
+    {
+      "id": "q01",
+      "question": "How are disk cache filenames derived from URLs?",
+      "reference_answer": "SHA-256 of the UTF-8 URL, formatted as a hexadecimal digest.",
+      "answer": "Disk cache filenames are derived from URLs using the `cache_key` function, which computes a SHA-256 hash of the URL. This hash is then used to create a filename by appending a suffix, typically `.txt`, to the hash. The `cache_key` function is defined in `src/cache/disk_cache.py:L1-L40`.",
+      "sources": [
+        {
+          "path": "src/cache/disk_cache.py",
+          "start_line": 1,
+          "end_line": 40,
+          "text": "\"\"\"\nsrc/cache/disk_cache.py\n=======================\nSimple filesystem cache for GitHub API responses and raw file blobs.\n\nFiles are stored under CACHE_DIR (default: .cache/ at the project root).\nEach entry is keyed by the SHA-256 of the original URL so filenames are\nsafe on all platforms.\n\"\"\"\n\nfrom __future__ import annotations\n\nimport hashlib\nimport json\nimport shutil\nfrom pathlib import Path\n\nfrom src.config.settings import CACHE_DIR\n\n_cache_root = Path(CACHE_DIR)\n\n\n# ---------------------------------------------------------------------------\n# Helpers\n# ---------------------------------------------------------------------------\n\ndef cache_key(url: str) -> str:\n    \"\"\"Return a hex-digest that is safe to use as a filename component.\"\"\"\n    return hashlib.sha256(url.encode(\"utf-8\")).hexdigest()\n\n\ndef _path_for(url: str, suffix: str = \".txt\") -> Path:\n    return _cache_root / (cache_key(url) + suffix)\n\n\n# ---------------------------------------------------------------------------\n# Public API\n# ---------------------------------------------------------------------------\n\ndef load(url: str, suffix: str = \".txt\") -> str | None:",
+          "raw_source": true
+        },
+        {
+          "path": "src/nodes/global_context_node.py",
+          "start_line": 65,
+          "end_line": 98,
+          "text": "        f\"- {f['path']} ({f['ext']}, {f['size_kb']} KB)\"\n        for f in flattened[:60]\n    )\n\n    prompt = f\"\"\"\nYou are an expert software architect.\nBelow is a summary of a GitHub repository structure and small snippets from key files.\n\n### File Structure (first 60 files):\n{tree_summ}\n\n### Key File Headers:\n{headers if headers else 'No key files found.'}\n\nPlease describe in 5-8 sentences:\n1. The overall purpose of this repository.\n2. The main components or modules and their likely roles.\n3. How these modules might interact logically (e.g., data -> model -> evaluation).\n4. Which parts appear to be core, supporting, or documentation.\n\"\"\"\n\n    system_msg = SystemMessage(content=(\n        \"You are an expert GitHub repository summariser. \"\n        \"Provide insights on what functions and modules are present and how they \"\n        \"connect to each other, in plain terms where possible.\"\n    ))\n    human_msg = HumanMessage(content=prompt)\n\n    llm = state.get(\"llm\")\n    response = await llm.ainvoke([system_msg, human_msg])\n    global_summ = response.content.strip()\n\n    log.info(\"Global context summary generated (%d chars).\", len(global_summ))\n    return {\"global_context\": global_summ}",
+          "raw_source": true
+        },
+        {
+          "path": "src/cache/__init__.py",
+          "start_line": 1,
+          "end_line": 2,
+          "text": "# src/cache/__init__.py\nfrom src.cache.disk_cache import load, save, invalidate, clear, cache_key  # noqa: F401",
+          "raw_source": true
+        },
+        {
+          "path": "src/nodes/global_context_node.py",
+          "start_line": 1,
+          "end_line": 40,
+          "text": "\"\"\"\nsrc/nodes/global_context_node.py\n==================================\nBuilds a high-level natural-language summary of the repository structure.\n\nFile snippet fetches are routed through the cached :func:`fetch_blob_content`\nutility (backed by the on-disk cache under ``.cache/``) so repeated runs do\nnot hit the GitHub network.\n\"\"\"\n\nfrom __future__ import annotations\n\nfrom langchain_core.messages import SystemMessage, HumanMessage\n\nfrom src.utils.flatten_tree import flatten_tree\nfrom src.utils.fetch_blob import fetch_blob_content\nfrom src.utils.logger import get_logger\n\nlog = get_logger(__name__)\n\n\nasync def global_context_node(state: dict) -> dict:\n    \"\"\"\n    Builds a global overview of the repository based on the metadata tree\n    fetched from GitRepoParser.\n\n    Produces a brief summary of repo structure, key folders and relationships.\n    File snippet fetches use the shared disk cache (refresh honoured via state).\n    \"\"\"\n    repo_tree = state.get(\"repo_tree\")\n    refresh   = bool(state.get(\"refresh_cache\", False))\n\n    if not repo_tree:\n        log.warning(\"No repo tree found in state; skipping global context.\")\n        return {\"global_context\": \"No repo structure available\"}\n\n    flattened = flatten_tree(repo_tree)\n\n    # Select up to 5 key files for snippet extraction\n    imp_files = [",
+          "raw_source": true
+        },
+        {
+          "path": "src/cache/disk_cache.py",
+          "start_line": 65,
+          "end_line": 87,
+          "text": "    \"\"\"Persist *content* to disk under a key derived from *url*.\"\"\"\n    _cache_root.mkdir(parents=True, exist_ok=True)\n    _path_for(url, suffix).write_text(content, encoding=\"utf-8\")\n\n\ndef save_json(url: str, obj: dict | list) -> None:\n    \"\"\"Serialise *obj* as JSON and persist it.\"\"\"\n    save(url, json.dumps(obj, ensure_ascii=False), suffix=\".json\")\n\n\ndef invalidate(url: str, suffix: str = \".txt\") -> None:\n    \"\"\"Delete a single cached entry (silently ignores missing files).\"\"\"\n    p = _path_for(url, suffix)\n    try:\n        p.unlink()\n    except FileNotFoundError:\n        pass\n\n\ndef clear() -> None:\n    \"\"\"Wipe the entire cache directory.\"\"\"\n    if _cache_root.exists():\n        shutil.rmtree(_cache_root)",
+          "raw_source": true
+        },
+        {
+          "path": "src/utils/fetch_blob.py",
+          "start_line": 1,
+          "end_line": 40,
+          "text": "\"\"\"\nsrc/utils/fetch_blob.py\n=======================\nFetches raw file content from a URL (typically a GitHub raw URL).\nResults are transparently cached on disk to avoid redundant network\nround-trips on repeated runs.\n\"\"\"\n\nfrom __future__ import annotations\n\nimport requests\n\nfrom src.cache.disk_cache import load as cache_load, save as cache_save\n\n\ndef fetch_blob_content(blob_url: str, refresh: bool = False) -> str:\n    \"\"\"\n    Fetch the text content at *blob_url*.\n\n    Parameters\n    ----------\n    blob_url: The raw GitHub URL to download.\n    refresh:  When ``True``, bypass the on-disk cache and re-download.\n\n    Returns\n    -------\n    Decoded text (``str``), or an empty string on failure.\n    \"\"\"\n    if not refresh:\n        cached = cache_load(blob_url)\n        if cached is not None:\n            return cached\n\n    try:\n        response = requests.get(blob_url, timeout=30)\n        response.raise_for_status()\n        data = response.text\n        cache_save(blob_url, data)\n        return data\n",
+          "raw_source": true
+        },
+        {
+          "path": "src/nodes/fetch_and_parse_node.py",
+          "start_line": 1,
+          "end_line": 40,
+          "text": "\"\"\"\nsrc/nodes/fetch_and_parse_node.py\n===================================\nFetches file content for *selected_files* and parses each one using the\nappropriate parser tool.\n\nConcurrency\n-----------\nFiles are fetched concurrently (up to ``MAX_CONCURRENT_FETCHES`` in\nparallel) using ``asyncio.to_thread`` so the blocking ``requests`` calls\ndo not stall the event loop.  Output order is deterministic (same order\nas *selected_files*).\n\nProgress\n--------\nA ``tqdm`` progress bar is shown on stderr during fetching.  It is\nautomatically suppressed when stderr is not a TTY (e.g. in CI or when\noutput is piped) or when the ``TQDM_DISABLE`` environment variable is set\nto ``\"1\"``.\n\"\"\"\n\nfrom __future__ import annotations\n\nimport asyncio\nimport os\nfrom typing import Optional\n\nfrom langchain_core.messages import SystemMessage\n\nfrom src.tools.parse_python   import parse_python\nfrom src.tools.parse_markdown  import parse_markdown\nfrom src.tools.parse_notebook  import parse_notebook\nfrom src.tools.parse_json_yaml import parse_json_yaml\nfrom src.utils.fetch_blob      import fetch_blob_content\nfrom src.utils.logger          import get_logger\nfrom src.config.settings       import MAX_CONCURRENT_FETCHES\n\nlog = get_logger(__name__)\n\n# \u2500\u2500 Parser registry \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500",
+          "raw_source": true
+        },
+        {
+          "path": "src/github_repo_parser.py",
+          "start_line": 97,
+          "end_line": 136,
+          "text": "        return response.json().get(\"default_branch\", \"main\")\n\n    def get_dir_tree(self, repo_url: str, branch: str | None = None, refresh: bool = False) -> dict:\n        \"\"\"\n        Returns nested tree structure of repository using the Contents API.\n\n        Parameters\n        ----------\n        repo_url: Full GitHub HTTPS URL, e.g. https://github.com/owner/repo\n        branch:   Branch to analyse; None means auto-detect the default branch.\n        refresh:  When True, bypass the on-disk cache and re-fetch.\n        \"\"\"\n        repo_name = self._get_repo_name(repo_url)\n        owner, repo = repo_name.split(\"/\")\n        branch = branch or self._get_default_branch(owner, repo)\n\n        # Cache key includes branch so different branches stay separate\n        cache_url = f\"tree::{owner}/{repo}@{branch}\"\n\n        if not refresh:\n            cached = cache_load_json(cache_url)\n            if cached is not None:\n                print(f\"\\n[cache] Loaded repo tree for {repo_name}@{branch} from disk.\")\n                return cached\n\n        all_files = self._fetch_recursive(owner, repo, \"\", branch)\n        metadata: dict = {}\n\n        for f in all_files:\n            path = f[\"path\"]\n            ext = self._get_extension(path)\n\n            if self._is_excluded(path):\n                continue\n\n            meta = {\n                \"path\": path,\n                \"type\": \"file\",\n                \"ext\": ext,\n                \"size_kb\": round(f.get(\"size\", 0) / 1024, 2),",
+          "raw_source": true
+        }
+      ],
+      "metrics": {
+        "retrieval_ms": 11.229,
+        "generation_ms": 58500.705,
+        "context_chars": 8588,
+        "retrieved_chunks": 8,
+        "retrieval_mode": "lexical",
+        "generated": true
+      },
+      "score": null,
+      "reviewer_reason": ""
+    },
+    {
+      "id": "q02",
+      "question": "What happens when cached JSON is corrupt?",
+      "reference_answer": "load_json catches JSONDecodeError and returns None.",
+      "answer": "When cached JSON is corrupt, the `load_json` function will return `None`. This is because the function attempts to decode the cached JSON using `json.loads`, which will raise a `json.JSONDecodeError` if the cached JSON is not valid. The function catches this exception and returns `None` to indicate that the cached JSON is corrupt.",
+      "sources": [
+        {
+          "path": "src/cache/disk_cache.py",
+          "start_line": 33,
+          "end_line": 72,
+          "text": "    return _cache_root / (cache_key(url) + suffix)\n\n\n# ---------------------------------------------------------------------------\n# Public API\n# ---------------------------------------------------------------------------\n\ndef load(url: str, suffix: str = \".txt\") -> str | None:\n    \"\"\"\n    Return the cached text for *url*, or ``None`` if not cached.\n    \"\"\"\n    p = _path_for(url, suffix)\n    if p.exists():\n        try:\n            return p.read_text(encoding=\"utf-8\")\n        except OSError:\n            return None\n    return None\n\n\ndef load_json(url: str) -> dict | list | None:\n    \"\"\"Return cached JSON-decoded object, or ``None``.\"\"\"\n    raw = load(url, suffix=\".json\")\n    if raw is not None:\n        try:\n            return json.loads(raw)\n        except json.JSONDecodeError:\n            return None\n    return None\n\n\ndef save(url: str, content: str, suffix: str = \".txt\") -> None:\n    \"\"\"Persist *content* to disk under a key derived from *url*.\"\"\"\n    _cache_root.mkdir(parents=True, exist_ok=True)\n    _path_for(url, suffix).write_text(content, encoding=\"utf-8\")\n\n\ndef save_json(url: str, obj: dict | list) -> None:\n    \"\"\"Serialise *obj* as JSON and persist it.\"\"\"\n    save(url, json.dumps(obj, ensure_ascii=False), suffix=\".json\")",
+          "raw_source": true
+        },
+        {
+          "path": "src/utils/fetch_blob.py",
+          "start_line": 1,
+          "end_line": 40,
+          "text": "\"\"\"\nsrc/utils/fetch_blob.py\n=======================\nFetches raw file content from a URL (typically a GitHub raw URL).\nResults are transparently cached on disk to avoid redundant network\nround-trips on repeated runs.\n\"\"\"\n\nfrom __future__ import annotations\n\nimport requests\n\nfrom src.cache.disk_cache import load as cache_load, save as cache_save\n\n\ndef fetch_blob_content(blob_url: str, refresh: bool = False) -> str:\n    \"\"\"\n    Fetch the text content at *blob_url*.\n\n    Parameters\n    ----------\n    blob_url: The raw GitHub URL to download.\n    refresh:  When ``True``, bypass the on-disk cache and re-download.\n\n    Returns\n    -------\n    Decoded text (``str``), or an empty string on failure.\n    \"\"\"\n    if not refresh:\n        cached = cache_load(blob_url)\n        if cached is not None:\n            return cached\n\n    try:\n        response = requests.get(blob_url, timeout=30)\n        response.raise_for_status()\n        data = response.text\n        cache_save(blob_url, data)\n        return data\n",
+          "raw_source": true
+        },
+        {
+          "path": "src/nodes/fetch_and_parse_node.py",
+          "start_line": 1,
+          "end_line": 40,
+          "text": "\"\"\"\nsrc/nodes/fetch_and_parse_node.py\n===================================\nFetches file content for *selected_files* and parses each one using the\nappropriate parser tool.\n\nConcurrency\n-----------\nFiles are fetched concurrently (up to ``MAX_CONCURRENT_FETCHES`` in\nparallel) using ``asyncio.to_thread`` so the blocking ``requests`` calls\ndo not stall the event loop.  Output order is deterministic (same order\nas *selected_files*).\n\nProgress\n--------\nA ``tqdm`` progress bar is shown on stderr during fetching.  It is\nautomatically suppressed when stderr is not a TTY (e.g. in CI or when\noutput is piped) or when the ``TQDM_DISABLE`` environment variable is set\nto ``\"1\"``.\n\"\"\"\n\nfrom __future__ import annotations\n\nimport asyncio\nimport os\nfrom typing import Optional\n\nfrom langchain_core.messages import SystemMessage\n\nfrom src.tools.parse_python   import parse_python\nfrom src.tools.parse_markdown  import parse_markdown\nfrom src.tools.parse_notebook  import parse_notebook\nfrom src.tools.parse_json_yaml import parse_json_yaml\nfrom src.utils.fetch_blob      import fetch_blob_content\nfrom src.utils.logger          import get_logger\nfrom src.config.settings       import MAX_CONCURRENT_FETCHES\n\nlog = get_logger(__name__)\n\n# \u2500\u2500 Parser registry \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500",
+          "raw_source": true
+        },
+        {
+          "path": "src/tools/parse_json_yaml.py",
+          "start_line": 1,
+          "end_line": 28,
+          "text": "# tools/parse_json_yaml.py\nimport json\nimport yaml\n\ndef parse_json_yaml(raw: str) -> str:\n    \"\"\"\n    Safely prettify JSON or YAML.\n    Returns clean structure up to a safe token limit.\n    \"\"\"\n\n    # Try JSON first\n    try:\n        data = json.loads(raw)\n        pretty = json.dumps(data, indent=2)\n        return pretty[:5000]    # safe trimming\n    except:\n        pass\n\n    # Try YAML\n    try:\n        data = yaml.safe_load(raw)\n        pretty = yaml.dump(data, default_flow_style=False)\n        return pretty[:5000]\n    except:\n        pass\n\n    # Fallback = raw head\n    return raw[:5000]",
+          "raw_source": true
+        },
+        {
+          "path": "src/github_repo_parser.py",
+          "start_line": 97,
+          "end_line": 136,
+          "text": "        return response.json().get(\"default_branch\", \"main\")\n\n    def get_dir_tree(self, repo_url: str, branch: str | None = None, refresh: bool = False) -> dict:\n        \"\"\"\n        Returns nested tree structure of repository using the Contents API.\n\n        Parameters\n        ----------\n        repo_url: Full GitHub HTTPS URL, e.g. https://github.com/owner/repo\n        branch:   Branch to analyse; None means auto-detect the default branch.\n        refresh:  When True, bypass the on-disk cache and re-fetch.\n        \"\"\"\n        repo_name = self._get_repo_name(repo_url)\n        owner, repo = repo_name.split(\"/\")\n        branch = branch or self._get_default_branch(owner, repo)\n\n        # Cache key includes branch so different branches stay separate\n        cache_url = f\"tree::{owner}/{repo}@{branch}\"\n\n        if not refresh:\n            cached = cache_load_json(cache_url)\n            if cached is not None:\n                print(f\"\\n[cache] Loaded repo tree for {repo_name}@{branch} from disk.\")\n                return cached\n\n        all_files = self._fetch_recursive(owner, repo, \"\", branch)\n        metadata: dict = {}\n\n        for f in all_files:\n            path = f[\"path\"]\n            ext = self._get_extension(path)\n\n            if self._is_excluded(path):\n                continue\n\n            meta = {\n                \"path\": path,\n                \"type\": \"file\",\n                \"ext\": ext,\n                \"size_kb\": round(f.get(\"size\", 0) / 1024, 2),",
+          "raw_source": true
+        },
+        {
+          "path": "src/cache/disk_cache.py",
+          "start_line": 65,
+          "end_line": 87,
+          "text": "    \"\"\"Persist *content* to disk under a key derived from *url*.\"\"\"\n    _cache_root.mkdir(parents=True, exist_ok=True)\n    _path_for(url, suffix).write_text(content, encoding=\"utf-8\")\n\n\ndef save_json(url: str, obj: dict | list) -> None:\n    \"\"\"Serialise *obj* as JSON and persist it.\"\"\"\n    save(url, json.dumps(obj, ensure_ascii=False), suffix=\".json\")\n\n\ndef invalidate(url: str, suffix: str = \".txt\") -> None:\n    \"\"\"Delete a single cached entry (silently ignores missing files).\"\"\"\n    p = _path_for(url, suffix)\n    try:\n        p.unlink()\n    except FileNotFoundError:\n        pass\n\n\ndef clear() -> None:\n    \"\"\"Wipe the entire cache directory.\"\"\"\n    if _cache_root.exists():\n        shutil.rmtree(_cache_root)",
+          "raw_source": true
+        },
+        {
+          "path": "src/nodes/query_analyser_node.py",
+          "start_line": 1,
+          "end_line": 40,
+          "text": "from langchain_core.messages import HumanMessage\nimport re\n\nINTENT_PATTERNS = {\n    \"function_usage\": [\n        r\"where.*function\",\n        r\"usage of\",\n        r\"where is .* used\",\n        r\"who calls\",\n        r\"find usages\",\n    ],\n    \"type_lookup\": [\n        r\"type of\",\n        r\"what.*type\",\n        r\"datatype of\",\n    ],\n    \"pipeline_flow\": [\n        r\"pipeline\",\n        r\"flow\",\n        r\"process flow\",\n        r\"execution flow\",\n        r\"data flow\",\n    ],\n    \"directory_question\": [\n        r\"what'?s inside\",\n        r\"what is inside\",\n        r\"show.*directory\",\n        r\"explain.*directory\",\n        r\"what does .* folder\",\n    ],\n    \"architecture_summary\": [\n        r\"architecture\",\n        r\"overall structure\",\n        r\"design\",\n    ],\n}\n\ndef detect_intent(query: str) -> str:\n    query_lower = query.lower()\n    for intent, patterns in INTENT_PATTERNS.items():",
+          "raw_source": true
+        },
+        {
+          "path": "src/nodes/global_context_node.py",
+          "start_line": 33,
+          "end_line": 72,
+          "text": "    if not repo_tree:\n        log.warning(\"No repo tree found in state; skipping global context.\")\n        return {\"global_context\": \"No repo structure available\"}\n\n    flattened = flatten_tree(repo_tree)\n\n    # Select up to 5 key files for snippet extraction\n    imp_files = [\n        f for f in flattened\n        if any(\n            kw in f[\"path\"].lower()\n            for kw in [\"readme\", \"setup\", \"main\", \"app\", \"requirements\", \"scripts\", \"configs\"]\n        )\n    ][:5]\n\n    headers: list[str] = []\n    for file_meta in imp_files:\n        url  = file_meta.get(\"url\", \"\")\n        path = file_meta[\"path\"]\n        if not url:\n            continue\n        try:\n            # Uses the cached fetch \u2014 no redundant GitHub round-trips\n            raw     = fetch_blob_content(url, refresh=refresh)\n            snippet = \"\\n\".join(raw.splitlines()[:10])\n            headers.append(f\"{path}:\\n{snippet}\\n\")\n            log.debug(\"snippet fetched (cached): %s\", path)\n        except Exception as exc:  # noqa: BLE001\n            headers.append(f\"{path}: <Error fetching snippet: {exc}>\")\n            log.warning(\"Failed to fetch snippet for %s: %s\", path, exc)\n\n    tree_summ = \"\\n\".join(\n        f\"- {f['path']} ({f['ext']}, {f['size_kb']} KB)\"\n        for f in flattened[:60]\n    )\n\n    prompt = f\"\"\"\nYou are an expert software architect.\nBelow is a summary of a GitHub repository structure and small snippets from key files.\n",
+          "raw_source": true
+        }
+      ],
+      "metrics": {
+        "retrieval_ms": 11.665,
+        "generation_ms": 67107.485,
+        "context_chars": 8985,
+        "retrieved_chunks": 8,
+        "retrieval_mode": "lexical",
+        "generated": true
+      },
+      "score": null,
+      "reviewer_reason": ""
+    },
+    {
+      "id": "q03",
+      "question": "How can one cached entry be invalidated?",
+      "reference_answer": "invalidate computes its path and unlinks it, ignoring FileNotFoundError.",
+      "answer": "To invalidate a cached entry, one can use the `invalidate` function from the `src/cache/disk_cache.py` module. This function takes a URL and an optional suffix as arguments and deletes the corresponding cached file from disk. The function uses the `_path_for` helper function to determine the path of the cached file based on the URL and suffix.\n\nHere is an example of how to use the `invalidate` function:\n\n```python\nfrom src.cache.disk_cache import invalidate\n\n# Invalidate a cached entry for a specific URL\ninvalidate(\"https://example.com/path/to/file.txt\")\n```\n\nThis will delete the cached file located at `https://example.com/path/to/file.txt.txt` from the cache directory.",
+      "sources": [
+        {
+          "path": "src/nodes/global_context_node.py",
+          "start_line": 65,
+          "end_line": 98,
+          "text": "        f\"- {f['path']} ({f['ext']}, {f['size_kb']} KB)\"\n        for f in flattened[:60]\n    )\n\n    prompt = f\"\"\"\nYou are an expert software architect.\nBelow is a summary of a GitHub repository structure and small snippets from key files.\n\n### File Structure (first 60 files):\n{tree_summ}\n\n### Key File Headers:\n{headers if headers else 'No key files found.'}\n\nPlease describe in 5-8 sentences:\n1. The overall purpose of this repository.\n2. The main components or modules and their likely roles.\n3. How these modules might interact logically (e.g., data -> model -> evaluation).\n4. Which parts appear to be core, supporting, or documentation.\n\"\"\"\n\n    system_msg = SystemMessage(content=(\n        \"You are an expert GitHub repository summariser. \"\n        \"Provide insights on what functions and modules are present and how they \"\n        \"connect to each other, in plain terms where possible.\"\n    ))\n    human_msg = HumanMessage(content=prompt)\n\n    llm = state.get(\"llm\")\n    response = await llm.ainvoke([system_msg, human_msg])\n    global_summ = response.content.strip()\n\n    log.info(\"Global context summary generated (%d chars).\", len(global_summ))\n    return {\"global_context\": global_summ}",
+          "raw_source": true
+        },
+        {
+          "path": "src/utils/fetch_blob.py",
+          "start_line": 1,
+          "end_line": 40,
+          "text": "\"\"\"\nsrc/utils/fetch_blob.py\n=======================\nFetches raw file content from a URL (typically a GitHub raw URL).\nResults are transparently cached on disk to avoid redundant network\nround-trips on repeated runs.\n\"\"\"\n\nfrom __future__ import annotations\n\nimport requests\n\nfrom src.cache.disk_cache import load as cache_load, save as cache_save\n\n\ndef fetch_blob_content(blob_url: str, refresh: bool = False) -> str:\n    \"\"\"\n    Fetch the text content at *blob_url*.\n\n    Parameters\n    ----------\n    blob_url: The raw GitHub URL to download.\n    refresh:  When ``True``, bypass the on-disk cache and re-download.\n\n    Returns\n    -------\n    Decoded text (``str``), or an empty string on failure.\n    \"\"\"\n    if not refresh:\n        cached = cache_load(blob_url)\n        if cached is not None:\n            return cached\n\n    try:\n        response = requests.get(blob_url, timeout=30)\n        response.raise_for_status()\n        data = response.text\n        cache_save(blob_url, data)\n        return data\n",
+          "raw_source": true
+        },
+        {
+          "path": "src/retrieval/ranker.py",
+          "start_line": 1,
+          "end_line": 40,
+          "text": "\"\"\"\nsrc/retrieval/ranker.py\n=======================\nRanks text chunks by relevance to a query.\n\nTwo modes\n---------\n* **lexical** (default, always available):\n  TF-IDF-weighted cosine similarity using only stdlib ``math`` and\n  ``collections``.\n\n* **semantic** (optional):\n  Uses ``sentence-transformers`` if it is installed; gracefully falls\n  back to lexical mode if the import fails or the model cannot load.\n\nThe active mode can be forced via ``RETRIEVAL_MODE`` in the environment\n(\"lexical\" | \"semantic\").\n\"\"\"\n\nfrom __future__ import annotations\n\nimport math\nimport re\nfrom collections import Counter\nfrom typing import TYPE_CHECKING\n\nfrom src.config.settings import RETRIEVAL_MODE\n\nif TYPE_CHECKING:  # pragma: no cover\n    pass\n\n\n# ---------------------------------------------------------------------------\n# Internal helpers \u2013 lexical\n# ---------------------------------------------------------------------------\n\ndef _tokenize(text: str) -> list[str]:\n    \"\"\"Lowercase alphanumeric tokens.\"\"\"\n    return re.findall(r\"[a-z0-9_]+\", text.lower())\n",
+          "raw_source": true
+        },
+        {
+          "path": "src/cache/disk_cache.py",
+          "start_line": 65,
+          "end_line": 87,
+          "text": "    \"\"\"Persist *content* to disk under a key derived from *url*.\"\"\"\n    _cache_root.mkdir(parents=True, exist_ok=True)\n    _path_for(url, suffix).write_text(content, encoding=\"utf-8\")\n\n\ndef save_json(url: str, obj: dict | list) -> None:\n    \"\"\"Serialise *obj* as JSON and persist it.\"\"\"\n    save(url, json.dumps(obj, ensure_ascii=False), suffix=\".json\")\n\n\ndef invalidate(url: str, suffix: str = \".txt\") -> None:\n    \"\"\"Delete a single cached entry (silently ignores missing files).\"\"\"\n    p = _path_for(url, suffix)\n    try:\n        p.unlink()\n    except FileNotFoundError:\n        pass\n\n\ndef clear() -> None:\n    \"\"\"Wipe the entire cache directory.\"\"\"\n    if _cache_root.exists():\n        shutil.rmtree(_cache_root)",
+          "raw_source": true
+        },
+        {
+          "path": "src/nodes/summarize_repo_node.py",
+          "start_line": 97,
+          "end_line": 131,
+          "text": "    human_msg = HumanMessage(content=f\"\"\"\n            User Query:\n            {user_query}\n\n            Detected Intent: {intent}\n            Keywords: {keywords}\n            Targets: {targets}\n\n            Global Repository Context:\n            {global_context}\n\n            Selected Files (preview):\n            {selected_paths}\n\n            Parsed File Content (top-{top_k} most relevant chunks):\n            {merged_text}\n\n            Now, based on the above information, answer the user's question as clearly and concretely as possible.\n            If the intent is:\n            - function_usage: explain where the function is defined and where it is used.\n            - type_lookup: infer the variable type and show where it is defined/assigned.\n            - pipeline_flow: describe the logical execution flow and main entry points.\n            - directory_question: describe the purpose and contents of the directory.\n            - architecture_summary/high_level_summary: explain the architecture and major components.\n\n            If something cannot be determined from the provided context, clearly state the limitation.\n\"\"\")\n\n    response = await llm.ainvoke([system_msg, human_msg])\n    new_ai_msg = AIMessage(content=response.content)\n\n    return {\n        \"summary\": response.content,\n        \"messages\": [new_ai_msg],\n    }",
+          "raw_source": true
+        },
+        {
+          "path": "src/github_repo_parser.py",
+          "start_line": 97,
+          "end_line": 136,
+          "text": "        return response.json().get(\"default_branch\", \"main\")\n\n    def get_dir_tree(self, repo_url: str, branch: str | None = None, refresh: bool = False) -> dict:\n        \"\"\"\n        Returns nested tree structure of repository using the Contents API.\n\n        Parameters\n        ----------\n        repo_url: Full GitHub HTTPS URL, e.g. https://github.com/owner/repo\n        branch:   Branch to analyse; None means auto-detect the default branch.\n        refresh:  When True, bypass the on-disk cache and re-fetch.\n        \"\"\"\n        repo_name = self._get_repo_name(repo_url)\n        owner, repo = repo_name.split(\"/\")\n        branch = branch or self._get_default_branch(owner, repo)\n\n        # Cache key includes branch so different branches stay separate\n        cache_url = f\"tree::{owner}/{repo}@{branch}\"\n\n        if not refresh:\n            cached = cache_load_json(cache_url)\n            if cached is not None:\n                print(f\"\\n[cache] Loaded repo tree for {repo_name}@{branch} from disk.\")\n                return cached\n\n        all_files = self._fetch_recursive(owner, repo, \"\", branch)\n        metadata: dict = {}\n\n        for f in all_files:\n            path = f[\"path\"]\n            ext = self._get_extension(path)\n\n            if self._is_excluded(path):\n                continue\n\n            meta = {\n                \"path\": path,\n                \"type\": \"file\",\n                \"ext\": ext,\n                \"size_kb\": round(f.get(\"size\", 0) / 1024, 2),",
+          "raw_source": true
+        },
+        {
+          "path": "src/cache/disk_cache.py",
+          "start_line": 33,
+          "end_line": 72,
+          "text": "    return _cache_root / (cache_key(url) + suffix)\n\n\n# ---------------------------------------------------------------------------\n# Public API\n# ---------------------------------------------------------------------------\n\ndef load(url: str, suffix: str = \".txt\") -> str | None:\n    \"\"\"\n    Return the cached text for *url*, or ``None`` if not cached.\n    \"\"\"\n    p = _path_for(url, suffix)\n    if p.exists():\n        try:\n            return p.read_text(encoding=\"utf-8\")\n        except OSError:\n            return None\n    return None\n\n\ndef load_json(url: str) -> dict | list | None:\n    \"\"\"Return cached JSON-decoded object, or ``None``.\"\"\"\n    raw = load(url, suffix=\".json\")\n    if raw is not None:\n        try:\n            return json.loads(raw)\n        except json.JSONDecodeError:\n            return None\n    return None\n\n\ndef save(url: str, content: str, suffix: str = \".txt\") -> None:\n    \"\"\"Persist *content* to disk under a key derived from *url*.\"\"\"\n    _cache_root.mkdir(parents=True, exist_ok=True)\n    _path_for(url, suffix).write_text(content, encoding=\"utf-8\")\n\n\ndef save_json(url: str, obj: dict | list) -> None:\n    \"\"\"Serialise *obj* as JSON and persist it.\"\"\"\n    save(url, json.dumps(obj, ensure_ascii=False), suffix=\".json\")",
+          "raw_source": true
+        },
+        {
+          "path": "src/nodes/fetch_and_parse_node.py",
+          "start_line": 97,
+          "end_line": 136,
+          "text": "\n    Returns a parsed-file dict, or None if the file should be skipped\n    (already parsed or fetch failed).\n    \"\"\"\n    path = file_meta.get(\"path\", \"\")\n    url  = file_meta.get(\"url\", \"\")\n    ext  = file_meta.get(\"ext\", \"\").lower()\n\n    if not path or not url:\n        progress_callback()\n        return None\n\n    async with semaphore:\n        log.debug(\"Fetching %s\", path)\n        raw = await asyncio.to_thread(fetch_blob_content, url, refresh)\n\n    progress_callback()\n\n    if not raw:\n        log.warning(\"Empty content for %s\", path)\n        return {\"path\": path, \"ext\": ext, \"parsed\": f\"<Failed to fetch {path}>\"}\n\n    parsed = _parse(raw, ext, path)\n    return {\"path\": path, \"ext\": ext, \"parsed\": parsed}\n\n\n# \u2500\u2500 Node \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\n\nasync def fetch_and_parse_node(state: dict) -> dict:\n    \"\"\"\n    Fetch *selected_files* concurrently and parse each one.\n\n    - Up to ``MAX_CONCURRENT_FETCHES`` requests run in parallel.\n    - Files already present in ``parsed_files`` are skipped (cache hit).\n    - A tqdm progress bar is shown when running interactively.\n    - Output order mirrors the order of *selected_files*.\n    \"\"\"\n    selected_files: list[dict] = state.get(\"selected_files\", [])\n    refresh: bool = bool(state.get(\"refresh_cache\", False))\n",
+          "raw_source": true
+        }
+      ],
+      "metrics": {
+        "retrieval_ms": 17.295,
+        "generation_ms": 70267.698,
+        "context_chars": 9679,
+        "retrieved_chunks": 8,
+        "retrieval_mode": "lexical",
+        "generated": true
+      },
+      "score": null,
+      "reviewer_reason": ""
+    },
+    {
+      "id": "q04",
+      "question": "How is the entire cache cleared?",
+      "reference_answer": "clear removes the cache root recursively if it exists.",
+      "answer": "The entire cache is cleared by calling the `clear()` function in the `disk_cache.py` module. This function uses the `shutil.rmtree()` method to recursively delete the entire cache directory, which is defined by the `CACHE_DIR` setting in the `settings.py` module.",
+      "sources": [
+        {
+          "path": "src/cache/__init__.py",
+          "start_line": 1,
+          "end_line": 2,
+          "text": "# src/cache/__init__.py\nfrom src.cache.disk_cache import load, save, invalidate, clear, cache_key  # noqa: F401",
+          "raw_source": true
+        },
+        {
+          "path": "src/nodes/global_context_node.py",
+          "start_line": 65,
+          "end_line": 98,
+          "text": "        f\"- {f['path']} ({f['ext']}, {f['size_kb']} KB)\"\n        for f in flattened[:60]\n    )\n\n    prompt = f\"\"\"\nYou are an expert software architect.\nBelow is a summary of a GitHub repository structure and small snippets from key files.\n\n### File Structure (first 60 files):\n{tree_summ}\n\n### Key File Headers:\n{headers if headers else 'No key files found.'}\n\nPlease describe in 5-8 sentences:\n1. The overall purpose of this repository.\n2. The main components or modules and their likely roles.\n3. How these modules might interact logically (e.g., data -> model -> evaluation).\n4. Which parts appear to be core, supporting, or documentation.\n\"\"\"\n\n    system_msg = SystemMessage(content=(\n        \"You are an expert GitHub repository summariser. \"\n        \"Provide insights on what functions and modules are present and how they \"\n        \"connect to each other, in plain terms where possible.\"\n    ))\n    human_msg = HumanMessage(content=prompt)\n\n    llm = state.get(\"llm\")\n    response = await llm.ainvoke([system_msg, human_msg])\n    global_summ = response.content.strip()\n\n    log.info(\"Global context summary generated (%d chars).\", len(global_summ))\n    return {\"global_context\": global_summ}",
+          "raw_source": true
+        },
+        {
+          "path": "src/nodes/summarize_repo_node.py",
+          "start_line": 97,
+          "end_line": 131,
+          "text": "    human_msg = HumanMessage(content=f\"\"\"\n            User Query:\n            {user_query}\n\n            Detected Intent: {intent}\n            Keywords: {keywords}\n            Targets: {targets}\n\n            Global Repository Context:\n            {global_context}\n\n            Selected Files (preview):\n            {selected_paths}\n\n            Parsed File Content (top-{top_k} most relevant chunks):\n            {merged_text}\n\n            Now, based on the above information, answer the user's question as clearly and concretely as possible.\n            If the intent is:\n            - function_usage: explain where the function is defined and where it is used.\n            - type_lookup: infer the variable type and show where it is defined/assigned.\n            - pipeline_flow: describe the logical execution flow and main entry points.\n            - directory_question: describe the purpose and contents of the directory.\n            - architecture_summary/high_level_summary: explain the architecture and major components.\n\n            If something cannot be determined from the provided context, clearly state the limitation.\n\"\"\")\n\n    response = await llm.ainvoke([system_msg, human_msg])\n    new_ai_msg = AIMessage(content=response.content)\n\n    return {\n        \"summary\": response.content,\n        \"messages\": [new_ai_msg],\n    }",
+          "raw_source": true
+        },
+        {
+          "path": "src/cache/disk_cache.py",
+          "start_line": 1,
+          "end_line": 40,
+          "text": "\"\"\"\nsrc/cache/disk_cache.py\n=======================\nSimple filesystem cache for GitHub API responses and raw file blobs.\n\nFiles are stored under CACHE_DIR (default: .cache/ at the project root).\nEach entry is keyed by the SHA-256 of the original URL so filenames are\nsafe on all platforms.\n\"\"\"\n\nfrom __future__ import annotations\n\nimport hashlib\nimport json\nimport shutil\nfrom pathlib import Path\n\nfrom src.config.settings import CACHE_DIR\n\n_cache_root = Path(CACHE_DIR)\n\n\n# ---------------------------------------------------------------------------\n# Helpers\n# ---------------------------------------------------------------------------\n\ndef cache_key(url: str) -> str:\n    \"\"\"Return a hex-digest that is safe to use as a filename component.\"\"\"\n    return hashlib.sha256(url.encode(\"utf-8\")).hexdigest()\n\n\ndef _path_for(url: str, suffix: str = \".txt\") -> Path:\n    return _cache_root / (cache_key(url) + suffix)\n\n\n# ---------------------------------------------------------------------------\n# Public API\n# ---------------------------------------------------------------------------\n\ndef load(url: str, suffix: str = \".txt\") -> str | None:",
+          "raw_source": true
+        },
+        {
+          "path": "src/cache/disk_cache.py",
+          "start_line": 65,
+          "end_line": 87,
+          "text": "    \"\"\"Persist *content* to disk under a key derived from *url*.\"\"\"\n    _cache_root.mkdir(parents=True, exist_ok=True)\n    _path_for(url, suffix).write_text(content, encoding=\"utf-8\")\n\n\ndef save_json(url: str, obj: dict | list) -> None:\n    \"\"\"Serialise *obj* as JSON and persist it.\"\"\"\n    save(url, json.dumps(obj, ensure_ascii=False), suffix=\".json\")\n\n\ndef invalidate(url: str, suffix: str = \".txt\") -> None:\n    \"\"\"Delete a single cached entry (silently ignores missing files).\"\"\"\n    p = _path_for(url, suffix)\n    try:\n        p.unlink()\n    except FileNotFoundError:\n        pass\n\n\ndef clear() -> None:\n    \"\"\"Wipe the entire cache directory.\"\"\"\n    if _cache_root.exists():\n        shutil.rmtree(_cache_root)",
+          "raw_source": true
+        },
+        {
+          "path": "src/nodes/global_context_node.py",
+          "start_line": 1,
+          "end_line": 40,
+          "text": "\"\"\"\nsrc/nodes/global_context_node.py\n==================================\nBuilds a high-level natural-language summary of the repository structure.\n\nFile snippet fetches are routed through the cached :func:`fetch_blob_content`\nutility (backed by the on-disk cache under ``.cache/``) so repeated runs do\nnot hit the GitHub network.\n\"\"\"\n\nfrom __future__ import annotations\n\nfrom langchain_core.messages import SystemMessage, HumanMessage\n\nfrom src.utils.flatten_tree import flatten_tree\nfrom src.utils.fetch_blob import fetch_blob_content\nfrom src.utils.logger import get_logger\n\nlog = get_logger(__name__)\n\n\nasync def global_context_node(state: dict) -> dict:\n    \"\"\"\n    Builds a global overview of the repository based on the metadata tree\n    fetched from GitRepoParser.\n\n    Produces a brief summary of repo structure, key folders and relationships.\n    File snippet fetches use the shared disk cache (refresh honoured via state).\n    \"\"\"\n    repo_tree = state.get(\"repo_tree\")\n    refresh   = bool(state.get(\"refresh_cache\", False))\n\n    if not repo_tree:\n        log.warning(\"No repo tree found in state; skipping global context.\")\n        return {\"global_context\": \"No repo structure available\"}\n\n    flattened = flatten_tree(repo_tree)\n\n    # Select up to 5 key files for snippet extraction\n    imp_files = [",
+          "raw_source": true
+        },
+        {
+          "path": "src/nodes/fetch_and_parse_node.py",
+          "start_line": 1,
+          "end_line": 40,
+          "text": "\"\"\"\nsrc/nodes/fetch_and_parse_node.py\n===================================\nFetches file content for *selected_files* and parses each one using the\nappropriate parser tool.\n\nConcurrency\n-----------\nFiles are fetched concurrently (up to ``MAX_CONCURRENT_FETCHES`` in\nparallel) using ``asyncio.to_thread`` so the blocking ``requests`` calls\ndo not stall the event loop.  Output order is deterministic (same order\nas *selected_files*).\n\nProgress\n--------\nA ``tqdm`` progress bar is shown on stderr during fetching.  It is\nautomatically suppressed when stderr is not a TTY (e.g. in CI or when\noutput is piped) or when the ``TQDM_DISABLE`` environment variable is set\nto ``\"1\"``.\n\"\"\"\n\nfrom __future__ import annotations\n\nimport asyncio\nimport os\nfrom typing import Optional\n\nfrom langchain_core.messages import SystemMessage\n\nfrom src.tools.parse_python   import parse_python\nfrom src.tools.parse_markdown  import parse_markdown\nfrom src.tools.parse_notebook  import parse_notebook\nfrom src.tools.parse_json_yaml import parse_json_yaml\nfrom src.utils.fetch_blob      import fetch_blob_content\nfrom src.utils.logger          import get_logger\nfrom src.config.settings       import MAX_CONCURRENT_FETCHES\n\nlog = get_logger(__name__)\n\n# \u2500\u2500 Parser registry \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500",
+          "raw_source": true
+        },
+        {
+          "path": "src/github_repo_parser.py",
+          "start_line": 97,
+          "end_line": 136,
+          "text": "        return response.json().get(\"default_branch\", \"main\")\n\n    def get_dir_tree(self, repo_url: str, branch: str | None = None, refresh: bool = False) -> dict:\n        \"\"\"\n        Returns nested tree structure of repository using the Contents API.\n\n        Parameters\n        ----------\n        repo_url: Full GitHub HTTPS URL, e.g. https://github.com/owner/repo\n        branch:   Branch to analyse; None means auto-detect the default branch.\n        refresh:  When True, bypass the on-disk cache and re-fetch.\n        \"\"\"\n        repo_name = self._get_repo_name(repo_url)\n        owner, repo = repo_name.split(\"/\")\n        branch = branch or self._get_default_branch(owner, repo)\n\n        # Cache key includes branch so different branches stay separate\n        cache_url = f\"tree::{owner}/{repo}@{branch}\"\n\n        if not refresh:\n            cached = cache_load_json(cache_url)\n            if cached is not None:\n                print(f\"\\n[cache] Loaded repo tree for {repo_name}@{branch} from disk.\")\n                return cached\n\n        all_files = self._fetch_recursive(owner, repo, \"\", branch)\n        metadata: dict = {}\n\n        for f in all_files:\n            path = f[\"path\"]\n            ext = self._get_extension(path)\n\n            if self._is_excluded(path):\n                continue\n\n            meta = {\n                \"path\": path,\n                \"type\": \"file\",\n                \"ext\": ext,\n                \"size_kb\": round(f.get(\"size\", 0) / 1024, 2),",
+          "raw_source": true
+        }
+      ],
+      "metrics": {
+        "retrieval_ms": 10.879,
+        "generation_ms": 49951.267,
+        "context_chars": 8932,
+        "retrieved_chunks": 8,
+        "retrieval_mode": "lexical",
+        "generated": true
+      },
+      "score": null,
+      "reviewer_reason": ""
+    },
+    {
+      "id": "q05",
+      "question": "What encoding is used when saving cached text?",
+      "reference_answer": "UTF-8.",
+      "answer": "The encoding used when saving cached text is UTF-8. This is specified in the `save` function in `src/cache/disk_cache.py` [path:src/cache/disk_cache.py:L61-L62].",
+      "sources": [
+        {
+          "path": "src/utils/fetch_blob.py",
+          "start_line": 1,
+          "end_line": 40,
+          "text": "\"\"\"\nsrc/utils/fetch_blob.py\n=======================\nFetches raw file content from a URL (typically a GitHub raw URL).\nResults are transparently cached on disk to avoid redundant network\nround-trips on repeated runs.\n\"\"\"\n\nfrom __future__ import annotations\n\nimport requests\n\nfrom src.cache.disk_cache import load as cache_load, save as cache_save\n\n\ndef fetch_blob_content(blob_url: str, refresh: bool = False) -> str:\n    \"\"\"\n    Fetch the text content at *blob_url*.\n\n    Parameters\n    ----------\n    blob_url: The raw GitHub URL to download.\n    refresh:  When ``True``, bypass the on-disk cache and re-download.\n\n    Returns\n    -------\n    Decoded text (``str``), or an empty string on failure.\n    \"\"\"\n    if not refresh:\n        cached = cache_load(blob_url)\n        if cached is not None:\n            return cached\n\n    try:\n        response = requests.get(blob_url, timeout=30)\n        response.raise_for_status()\n        data = response.text\n        cache_save(blob_url, data)\n        return data\n",
+          "raw_source": true
+        },
+        {
+          "path": "src/retrieval/chunker.py",
+          "start_line": 1,
+          "end_line": 40,
+          "text": "\"\"\"\nsrc/retrieval/chunker.py\n========================\nSplits long text into overlapping word-boundary chunks.\nNo external dependencies \u2013 only stdlib.\n\"\"\"\n\nfrom __future__ import annotations\n\n\ndef chunk_text(\n    text: str,\n    chunk_size: int = 400,\n    overlap: int = 50,\n) -> list[str]:\n    \"\"\"\n    Split *text* into overlapping word-level chunks.\n\n    Parameters\n    ----------\n    text:       The source text to split.\n    chunk_size: Maximum number of words per chunk.\n    overlap:    Number of words shared between consecutive chunks.\n\n    Returns\n    -------\n    A list of string chunks.  Returns ``[\"\"]`` if *text* is empty.\n    \"\"\"\n    if not text or not text.strip():\n        return [\"\"]\n\n    words = text.split()\n    if not words:\n        return [\"\"]\n\n    chunks: list[str] = []\n    step = max(1, chunk_size - overlap)\n    start = 0\n\n    while start < len(words):",
+          "raw_source": true
+        },
+        {
+          "path": "src/cache/disk_cache.py",
+          "start_line": 33,
+          "end_line": 72,
+          "text": "    return _cache_root / (cache_key(url) + suffix)\n\n\n# ---------------------------------------------------------------------------\n# Public API\n# ---------------------------------------------------------------------------\n\ndef load(url: str, suffix: str = \".txt\") -> str | None:\n    \"\"\"\n    Return the cached text for *url*, or ``None`` if not cached.\n    \"\"\"\n    p = _path_for(url, suffix)\n    if p.exists():\n        try:\n            return p.read_text(encoding=\"utf-8\")\n        except OSError:\n            return None\n    return None\n\n\ndef load_json(url: str) -> dict | list | None:\n    \"\"\"Return cached JSON-decoded object, or ``None``.\"\"\"\n    raw = load(url, suffix=\".json\")\n    if raw is not None:\n        try:\n            return json.loads(raw)\n        except json.JSONDecodeError:\n            return None\n    return None\n\n\ndef save(url: str, content: str, suffix: str = \".txt\") -> None:\n    \"\"\"Persist *content* to disk under a key derived from *url*.\"\"\"\n    _cache_root.mkdir(parents=True, exist_ok=True)\n    _path_for(url, suffix).write_text(content, encoding=\"utf-8\")\n\n\ndef save_json(url: str, obj: dict | list) -> None:\n    \"\"\"Serialise *obj* as JSON and persist it.\"\"\"\n    save(url, json.dumps(obj, ensure_ascii=False), suffix=\".json\")",
+          "raw_source": true
+        },
+        {
+          "path": "src/nodes/fetch_and_parse_node.py",
+          "start_line": 1,
+          "end_line": 40,
+          "text": "\"\"\"\nsrc/nodes/fetch_and_parse_node.py\n===================================\nFetches file content for *selected_files* and parses each one using the\nappropriate parser tool.\n\nConcurrency\n-----------\nFiles are fetched concurrently (up to ``MAX_CONCURRENT_FETCHES`` in\nparallel) using ``asyncio.to_thread`` so the blocking ``requests`` calls\ndo not stall the event loop.  Output order is deterministic (same order\nas *selected_files*).\n\nProgress\n--------\nA ``tqdm`` progress bar is shown on stderr during fetching.  It is\nautomatically suppressed when stderr is not a TTY (e.g. in CI or when\noutput is piped) or when the ``TQDM_DISABLE`` environment variable is set\nto ``\"1\"``.\n\"\"\"\n\nfrom __future__ import annotations\n\nimport asyncio\nimport os\nfrom typing import Optional\n\nfrom langchain_core.messages import SystemMessage\n\nfrom src.tools.parse_python   import parse_python\nfrom src.tools.parse_markdown  import parse_markdown\nfrom src.tools.parse_notebook  import parse_notebook\nfrom src.tools.parse_json_yaml import parse_json_yaml\nfrom src.utils.fetch_blob      import fetch_blob_content\nfrom src.utils.logger          import get_logger\nfrom src.config.settings       import MAX_CONCURRENT_FETCHES\n\nlog = get_logger(__name__)\n\n# \u2500\u2500 Parser registry \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500",
+          "raw_source": true
+        },
+        {
+          "path": "src/nodes/query_analyser_node.py",
+          "start_line": 1,
+          "end_line": 40,
+          "text": "from langchain_core.messages import HumanMessage\nimport re\n\nINTENT_PATTERNS = {\n    \"function_usage\": [\n        r\"where.*function\",\n        r\"usage of\",\n        r\"where is .* used\",\n        r\"who calls\",\n        r\"find usages\",\n    ],\n    \"type_lookup\": [\n        r\"type of\",\n        r\"what.*type\",\n        r\"datatype of\",\n    ],\n    \"pipeline_flow\": [\n        r\"pipeline\",\n        r\"flow\",\n        r\"process flow\",\n        r\"execution flow\",\n        r\"data flow\",\n    ],\n    \"directory_question\": [\n        r\"what'?s inside\",\n        r\"what is inside\",\n        r\"show.*directory\",\n        r\"explain.*directory\",\n        r\"what does .* folder\",\n    ],\n    \"architecture_summary\": [\n        r\"architecture\",\n        r\"overall structure\",\n        r\"design\",\n    ],\n}\n\ndef detect_intent(query: str) -> str:\n    query_lower = query.lower()\n    for intent, patterns in INTENT_PATTERNS.items():",
+          "raw_source": true
+        },
+        {
+          "path": "src/report/writer.py",
+          "start_line": 65,
+          "end_line": 86,
+          "text": "\n> {question}\n\n---\n\n## Files Analysed\n\n{file_lines}\n\n---\n\n## Answer\n\n{answer}\n\n---\n\n_Generated by [GitHub Code-Analyser Agent](https://github.com)_\n\"\"\"\n\n    report_path.write_text(content, encoding=\"utf-8\")\n    return report_path",
+          "raw_source": true
+        },
+        {
+          "path": "src/github_repo_parser.py",
+          "start_line": 97,
+          "end_line": 136,
+          "text": "        return response.json().get(\"default_branch\", \"main\")\n\n    def get_dir_tree(self, repo_url: str, branch: str | None = None, refresh: bool = False) -> dict:\n        \"\"\"\n        Returns nested tree structure of repository using the Contents API.\n\n        Parameters\n        ----------\n        repo_url: Full GitHub HTTPS URL, e.g. https://github.com/owner/repo\n        branch:   Branch to analyse; None means auto-detect the default branch.\n        refresh:  When True, bypass the on-disk cache and re-fetch.\n        \"\"\"\n        repo_name = self._get_repo_name(repo_url)\n        owner, repo = repo_name.split(\"/\")\n        branch = branch or self._get_default_branch(owner, repo)\n\n        # Cache key includes branch so different branches stay separate\n        cache_url = f\"tree::{owner}/{repo}@{branch}\"\n\n        if not refresh:\n            cached = cache_load_json(cache_url)\n            if cached is not None:\n                print(f\"\\n[cache] Loaded repo tree for {repo_name}@{branch} from disk.\")\n                return cached\n\n        all_files = self._fetch_recursive(owner, repo, \"\", branch)\n        metadata: dict = {}\n\n        for f in all_files:\n            path = f[\"path\"]\n            ext = self._get_extension(path)\n\n            if self._is_excluded(path):\n                continue\n\n            meta = {\n                \"path\": path,\n                \"type\": \"file\",\n                \"ext\": ext,\n                \"size_kb\": round(f.get(\"size\", 0) / 1024, 2),",
+          "raw_source": true
+        },
+        {
+          "path": "src/nodes/summarize_repo_node.py",
+          "start_line": 97,
+          "end_line": 131,
+          "text": "    human_msg = HumanMessage(content=f\"\"\"\n            User Query:\n            {user_query}\n\n            Detected Intent: {intent}\n            Keywords: {keywords}\n            Targets: {targets}\n\n            Global Repository Context:\n            {global_context}\n\n            Selected Files (preview):\n            {selected_paths}\n\n            Parsed File Content (top-{top_k} most relevant chunks):\n            {merged_text}\n\n            Now, based on the above information, answer the user's question as clearly and concretely as possible.\n            If the intent is:\n            - function_usage: explain where the function is defined and where it is used.\n            - type_lookup: infer the variable type and show where it is defined/assigned.\n            - pipeline_flow: describe the logical execution flow and main entry points.\n            - directory_question: describe the purpose and contents of the directory.\n            - architecture_summary/high_level_summary: explain the architecture and major components.\n\n            If something cannot be determined from the provided context, clearly state the limitation.\n\"\"\")\n\n    response = await llm.ainvoke([system_msg, human_msg])\n    new_ai_msg = AIMessage(content=response.content)\n\n    return {\n        \"summary\": response.content,\n        \"messages\": [new_ai_msg],\n    }",
+          "raw_source": true
+        }
+      ],
+      "metrics": {
+        "retrieval_ms": 27.661,
+        "generation_ms": 52130.891,
+        "context_chars": 8689,
+        "retrieved_chunks": 8,
+        "retrieval_mode": "lexical",
+        "generated": true
+      },
+      "score": null,
+      "reviewer_reason": ""
+    },
+    {
+      "id": "q06",
+      "question": "What is the timeout when downloading raw file blobs?",
+      "reference_answer": "The requests.get call uses a 30-second timeout.",
+      "answer": "The timeout when downloading raw file blobs is 30 seconds.",
+      "sources": [
+        {
+          "path": "src/nodes/fetch_and_parse_node.py",
+          "start_line": 1,
+          "end_line": 40,
+          "text": "\"\"\"\nsrc/nodes/fetch_and_parse_node.py\n===================================\nFetches file content for *selected_files* and parses each one using the\nappropriate parser tool.\n\nConcurrency\n-----------\nFiles are fetched concurrently (up to ``MAX_CONCURRENT_FETCHES`` in\nparallel) using ``asyncio.to_thread`` so the blocking ``requests`` calls\ndo not stall the event loop.  Output order is deterministic (same order\nas *selected_files*).\n\nProgress\n--------\nA ``tqdm`` progress bar is shown on stderr during fetching.  It is\nautomatically suppressed when stderr is not a TTY (e.g. in CI or when\noutput is piped) or when the ``TQDM_DISABLE`` environment variable is set\nto ``\"1\"``.\n\"\"\"\n\nfrom __future__ import annotations\n\nimport asyncio\nimport os\nfrom typing import Optional\n\nfrom langchain_core.messages import SystemMessage\n\nfrom src.tools.parse_python   import parse_python\nfrom src.tools.parse_markdown  import parse_markdown\nfrom src.tools.parse_notebook  import parse_notebook\nfrom src.tools.parse_json_yaml import parse_json_yaml\nfrom src.utils.fetch_blob      import fetch_blob_content\nfrom src.utils.logger          import get_logger\nfrom src.config.settings       import MAX_CONCURRENT_FETCHES\n\nlog = get_logger(__name__)\n\n# \u2500\u2500 Parser registry \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500",
+          "raw_source": true
+        },
+        {
+          "path": "src/utils/fetch_blob.py",
+          "start_line": 1,
+          "end_line": 40,
+          "text": "\"\"\"\nsrc/utils/fetch_blob.py\n=======================\nFetches raw file content from a URL (typically a GitHub raw URL).\nResults are transparently cached on disk to avoid redundant network\nround-trips on repeated runs.\n\"\"\"\n\nfrom __future__ import annotations\n\nimport requests\n\nfrom src.cache.disk_cache import load as cache_load, save as cache_save\n\n\ndef fetch_blob_content(blob_url: str, refresh: bool = False) -> str:\n    \"\"\"\n    Fetch the text content at *blob_url*.\n\n    Parameters\n    ----------\n    blob_url: The raw GitHub URL to download.\n    refresh:  When ``True``, bypass the on-disk cache and re-download.\n\n    Returns\n    -------\n    Decoded text (``str``), or an empty string on failure.\n    \"\"\"\n    if not refresh:\n        cached = cache_load(blob_url)\n        if cached is not None:\n            return cached\n\n    try:\n        response = requests.get(blob_url, timeout=30)\n        response.raise_for_status()\n        data = response.text\n        cache_save(blob_url, data)\n        return data\n",
+          "raw_source": true
+        },
+        {
+          "path": "src/cache/disk_cache.py",
+          "start_line": 1,
+          "end_line": 40,
+          "text": "\"\"\"\nsrc/cache/disk_cache.py\n=======================\nSimple filesystem cache for GitHub API responses and raw file blobs.\n\nFiles are stored under CACHE_DIR (default: .cache/ at the project root).\nEach entry is keyed by the SHA-256 of the original URL so filenames are\nsafe on all platforms.\n\"\"\"\n\nfrom __future__ import annotations\n\nimport hashlib\nimport json\nimport shutil\nfrom pathlib import Path\n\nfrom src.config.settings import CACHE_DIR\n\n_cache_root = Path(CACHE_DIR)\n\n\n# ---------------------------------------------------------------------------\n# Helpers\n# ---------------------------------------------------------------------------\n\ndef cache_key(url: str) -> str:\n    \"\"\"Return a hex-digest that is safe to use as a filename component.\"\"\"\n    return hashlib.sha256(url.encode(\"utf-8\")).hexdigest()\n\n\ndef _path_for(url: str, suffix: str = \".txt\") -> Path:\n    return _cache_root / (cache_key(url) + suffix)\n\n\n# ---------------------------------------------------------------------------\n# Public API\n# ---------------------------------------------------------------------------\n\ndef load(url: str, suffix: str = \".txt\") -> str | None:",
+          "raw_source": true
+        },
+        {
+          "path": "src/nodes/summarize_repo_node.py",
+          "start_line": 97,
+          "end_line": 131,
+          "text": "    human_msg = HumanMessage(content=f\"\"\"\n            User Query:\n            {user_query}\n\n            Detected Intent: {intent}\n            Keywords: {keywords}\n            Targets: {targets}\n\n            Global Repository Context:\n            {global_context}\n\n            Selected Files (preview):\n            {selected_paths}\n\n            Parsed File Content (top-{top_k} most relevant chunks):\n            {merged_text}\n\n            Now, based on the above information, answer the user's question as clearly and concretely as possible.\n            If the intent is:\n            - function_usage: explain where the function is defined and where it is used.\n            - type_lookup: infer the variable type and show where it is defined/assigned.\n            - pipeline_flow: describe the logical execution flow and main entry points.\n            - directory_question: describe the purpose and contents of the directory.\n            - architecture_summary/high_level_summary: explain the architecture and major components.\n\n            If something cannot be determined from the provided context, clearly state the limitation.\n\"\"\")\n\n    response = await llm.ainvoke([system_msg, human_msg])\n    new_ai_msg = AIMessage(content=response.content)\n\n    return {\n        \"summary\": response.content,\n        \"messages\": [new_ai_msg],\n    }",
+          "raw_source": true
+        },
+        {
+          "path": "src/nodes/fetch_and_parse_node.py",
+          "start_line": 65,
+          "end_line": 104,
+          "text": "        or not __import__(\"sys\").stderr.isatty()\n    )\n    if _TQDM_AVAILABLE and not disable:\n        return _tqdm(iterable, total=total, desc=desc, unit=\"file\", dynamic_ncols=True)\n    return iterable\n\n\n# \u2500\u2500 Core helpers \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\n\ndef _parse(raw: str, ext: str, path: str) -> str:\n    \"\"\"Run the appropriate parser; fall back to raw truncation on error.\"\"\"\n    parser_fn = PARSERS.get(ext)\n    if parser_fn:\n        try:\n            result = parser_fn(raw)\n            log.debug(\"Parsed %s with %s parser.\", path, ext)\n            return result\n        except Exception as exc:  # noqa: BLE001\n            log.warning(\"Parser error for %s: %s\", path, exc)\n            return f\"<Error parsing {path}: {exc}>\"\n    # Unknown extension \u2014 safe truncation\n    return raw[:5000]\n\n\nasync def _fetch_one(\n    file_meta: dict,\n    refresh: bool,\n    semaphore: asyncio.Semaphore,\n    progress_callback,\n) -> Optional[dict]:\n    \"\"\"\n    Fetch and parse a single file.\n\n    Returns a parsed-file dict, or None if the file should be skipped\n    (already parsed or fetch failed).\n    \"\"\"\n    path = file_meta.get(\"path\", \"\")\n    url  = file_meta.get(\"url\", \"\")\n    ext  = file_meta.get(\"ext\", \"\").lower()\n",
+          "raw_source": true
+        },
+        {
+          "path": "src/nodes/fetch_and_parse_node.py",
+          "start_line": 97,
+          "end_line": 136,
+          "text": "\n    Returns a parsed-file dict, or None if the file should be skipped\n    (already parsed or fetch failed).\n    \"\"\"\n    path = file_meta.get(\"path\", \"\")\n    url  = file_meta.get(\"url\", \"\")\n    ext  = file_meta.get(\"ext\", \"\").lower()\n\n    if not path or not url:\n        progress_callback()\n        return None\n\n    async with semaphore:\n        log.debug(\"Fetching %s\", path)\n        raw = await asyncio.to_thread(fetch_blob_content, url, refresh)\n\n    progress_callback()\n\n    if not raw:\n        log.warning(\"Empty content for %s\", path)\n        return {\"path\": path, \"ext\": ext, \"parsed\": f\"<Failed to fetch {path}>\"}\n\n    parsed = _parse(raw, ext, path)\n    return {\"path\": path, \"ext\": ext, \"parsed\": parsed}\n\n\n# \u2500\u2500 Node \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\n\nasync def fetch_and_parse_node(state: dict) -> dict:\n    \"\"\"\n    Fetch *selected_files* concurrently and parse each one.\n\n    - Up to ``MAX_CONCURRENT_FETCHES`` requests run in parallel.\n    - Files already present in ``parsed_files`` are skipped (cache hit).\n    - A tqdm progress bar is shown when running interactively.\n    - Output order mirrors the order of *selected_files*.\n    \"\"\"\n    selected_files: list[dict] = state.get(\"selected_files\", [])\n    refresh: bool = bool(state.get(\"refresh_cache\", False))\n",
+          "raw_source": true
+        },
+        {
+          "path": "src/nodes/query_analyser_node.py",
+          "start_line": 1,
+          "end_line": 40,
+          "text": "from langchain_core.messages import HumanMessage\nimport re\n\nINTENT_PATTERNS = {\n    \"function_usage\": [\n        r\"where.*function\",\n        r\"usage of\",\n        r\"where is .* used\",\n        r\"who calls\",\n        r\"find usages\",\n    ],\n    \"type_lookup\": [\n        r\"type of\",\n        r\"what.*type\",\n        r\"datatype of\",\n    ],\n    \"pipeline_flow\": [\n        r\"pipeline\",\n        r\"flow\",\n        r\"process flow\",\n        r\"execution flow\",\n        r\"data flow\",\n    ],\n    \"directory_question\": [\n        r\"what'?s inside\",\n        r\"what is inside\",\n        r\"show.*directory\",\n        r\"explain.*directory\",\n        r\"what does .* folder\",\n    ],\n    \"architecture_summary\": [\n        r\"architecture\",\n        r\"overall structure\",\n        r\"design\",\n    ],\n}\n\ndef detect_intent(query: str) -> str:\n    query_lower = query.lower()\n    for intent, patterns in INTENT_PATTERNS.items():",
+          "raw_source": true
+        },
+        {
+          "path": "src/tools/parse_json_yaml.py",
+          "start_line": 1,
+          "end_line": 28,
+          "text": "# tools/parse_json_yaml.py\nimport json\nimport yaml\n\ndef parse_json_yaml(raw: str) -> str:\n    \"\"\"\n    Safely prettify JSON or YAML.\n    Returns clean structure up to a safe token limit.\n    \"\"\"\n\n    # Try JSON first\n    try:\n        data = json.loads(raw)\n        pretty = json.dumps(data, indent=2)\n        return pretty[:5000]    # safe trimming\n    except:\n        pass\n\n    # Try YAML\n    try:\n        data = yaml.safe_load(raw)\n        pretty = yaml.dump(data, default_flow_style=False)\n        return pretty[:5000]\n    except:\n        pass\n\n    # Fallback = raw head\n    return raw[:5000]",
+          "raw_source": true
+        }
+      ],
+      "metrics": {
+        "retrieval_ms": 10.528,
+        "generation_ms": 52826.488,
+        "context_chars": 9183,
+        "retrieved_chunks": 8,
+        "retrieval_mode": "lexical",
+        "generated": true
+      },
+      "score": null,
+      "reviewer_reason": ""
+    },
+    {
+      "id": "q07",
+      "question": "What does a raw file download failure return?",
+      "reference_answer": "It prints an error and returns an empty string.",
+      "answer": "A raw file download failure returns an empty string.",
+      "sources": [
+        {
+          "path": "src/utils/fetch_blob.py",
+          "start_line": 1,
+          "end_line": 40,
+          "text": "\"\"\"\nsrc/utils/fetch_blob.py\n=======================\nFetches raw file content from a URL (typically a GitHub raw URL).\nResults are transparently cached on disk to avoid redundant network\nround-trips on repeated runs.\n\"\"\"\n\nfrom __future__ import annotations\n\nimport requests\n\nfrom src.cache.disk_cache import load as cache_load, save as cache_save\n\n\ndef fetch_blob_content(blob_url: str, refresh: bool = False) -> str:\n    \"\"\"\n    Fetch the text content at *blob_url*.\n\n    Parameters\n    ----------\n    blob_url: The raw GitHub URL to download.\n    refresh:  When ``True``, bypass the on-disk cache and re-download.\n\n    Returns\n    -------\n    Decoded text (``str``), or an empty string on failure.\n    \"\"\"\n    if not refresh:\n        cached = cache_load(blob_url)\n        if cached is not None:\n            return cached\n\n    try:\n        response = requests.get(blob_url, timeout=30)\n        response.raise_for_status()\n        data = response.text\n        cache_save(blob_url, data)\n        return data\n",
+          "raw_source": true
+        },
+        {
+          "path": "src/nodes/fetch_and_parse_node.py",
+          "start_line": 65,
+          "end_line": 104,
+          "text": "        or not __import__(\"sys\").stderr.isatty()\n    )\n    if _TQDM_AVAILABLE and not disable:\n        return _tqdm(iterable, total=total, desc=desc, unit=\"file\", dynamic_ncols=True)\n    return iterable\n\n\n# \u2500\u2500 Core helpers \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\n\ndef _parse(raw: str, ext: str, path: str) -> str:\n    \"\"\"Run the appropriate parser; fall back to raw truncation on error.\"\"\"\n    parser_fn = PARSERS.get(ext)\n    if parser_fn:\n        try:\n            result = parser_fn(raw)\n            log.debug(\"Parsed %s with %s parser.\", path, ext)\n            return result\n        except Exception as exc:  # noqa: BLE001\n            log.warning(\"Parser error for %s: %s\", path, exc)\n            return f\"<Error parsing {path}: {exc}>\"\n    # Unknown extension \u2014 safe truncation\n    return raw[:5000]\n\n\nasync def _fetch_one(\n    file_meta: dict,\n    refresh: bool,\n    semaphore: asyncio.Semaphore,\n    progress_callback,\n) -> Optional[dict]:\n    \"\"\"\n    Fetch and parse a single file.\n\n    Returns a parsed-file dict, or None if the file should be skipped\n    (already parsed or fetch failed).\n    \"\"\"\n    path = file_meta.get(\"path\", \"\")\n    url  = file_meta.get(\"url\", \"\")\n    ext  = file_meta.get(\"ext\", \"\").lower()\n",
+          "raw_source": true
+        },
+        {
+          "path": "src/nodes/query_analyser_node.py",
+          "start_line": 1,
+          "end_line": 40,
+          "text": "from langchain_core.messages import HumanMessage\nimport re\n\nINTENT_PATTERNS = {\n    \"function_usage\": [\n        r\"where.*function\",\n        r\"usage of\",\n        r\"where is .* used\",\n        r\"who calls\",\n        r\"find usages\",\n    ],\n    \"type_lookup\": [\n        r\"type of\",\n        r\"what.*type\",\n        r\"datatype of\",\n    ],\n    \"pipeline_flow\": [\n        r\"pipeline\",\n        r\"flow\",\n        r\"process flow\",\n        r\"execution flow\",\n        r\"data flow\",\n    ],\n    \"directory_question\": [\n        r\"what'?s inside\",\n        r\"what is inside\",\n        r\"show.*directory\",\n        r\"explain.*directory\",\n        r\"what does .* folder\",\n    ],\n    \"architecture_summary\": [\n        r\"architecture\",\n        r\"overall structure\",\n        r\"design\",\n    ],\n}\n\ndef detect_intent(query: str) -> str:\n    query_lower = query.lower()\n    for intent, patterns in INTENT_PATTERNS.items():",
+          "raw_source": true
+        },
+        {
+          "path": "src/tools/parse_json_yaml.py",
+          "start_line": 1,
+          "end_line": 28,
+          "text": "# tools/parse_json_yaml.py\nimport json\nimport yaml\n\ndef parse_json_yaml(raw: str) -> str:\n    \"\"\"\n    Safely prettify JSON or YAML.\n    Returns clean structure up to a safe token limit.\n    \"\"\"\n\n    # Try JSON first\n    try:\n        data = json.loads(raw)\n        pretty = json.dumps(data, indent=2)\n        return pretty[:5000]    # safe trimming\n    except:\n        pass\n\n    # Try YAML\n    try:\n        data = yaml.safe_load(raw)\n        pretty = yaml.dump(data, default_flow_style=False)\n        return pretty[:5000]\n    except:\n        pass\n\n    # Fallback = raw head\n    return raw[:5000]",
+          "raw_source": true
+        },
+        {
+          "path": "src/nodes/fetch_and_parse_node.py",
+          "start_line": 97,
+          "end_line": 136,
+          "text": "\n    Returns a parsed-file dict, or None if the file should be skipped\n    (already parsed or fetch failed).\n    \"\"\"\n    path = file_meta.get(\"path\", \"\")\n    url  = file_meta.get(\"url\", \"\")\n    ext  = file_meta.get(\"ext\", \"\").lower()\n\n    if not path or not url:\n        progress_callback()\n        return None\n\n    async with semaphore:\n        log.debug(\"Fetching %s\", path)\n        raw = await asyncio.to_thread(fetch_blob_content, url, refresh)\n\n    progress_callback()\n\n    if not raw:\n        log.warning(\"Empty content for %s\", path)\n        return {\"path\": path, \"ext\": ext, \"parsed\": f\"<Failed to fetch {path}>\"}\n\n    parsed = _parse(raw, ext, path)\n    return {\"path\": path, \"ext\": ext, \"parsed\": parsed}\n\n\n# \u2500\u2500 Node \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\n\nasync def fetch_and_parse_node(state: dict) -> dict:\n    \"\"\"\n    Fetch *selected_files* concurrently and parse each one.\n\n    - Up to ``MAX_CONCURRENT_FETCHES`` requests run in parallel.\n    - Files already present in ``parsed_files`` are skipped (cache hit).\n    - A tqdm progress bar is shown when running interactively.\n    - Output order mirrors the order of *selected_files*.\n    \"\"\"\n    selected_files: list[dict] = state.get(\"selected_files\", [])\n    refresh: bool = bool(state.get(\"refresh_cache\", False))\n",
+          "raw_source": true
+        },
+        {
+          "path": "src/cache/disk_cache.py",
+          "start_line": 33,
+          "end_line": 72,
+          "text": "    return _cache_root / (cache_key(url) + suffix)\n\n\n# ---------------------------------------------------------------------------\n# Public API\n# ---------------------------------------------------------------------------\n\ndef load(url: str, suffix: str = \".txt\") -> str | None:\n    \"\"\"\n    Return the cached text for *url*, or ``None`` if not cached.\n    \"\"\"\n    p = _path_for(url, suffix)\n    if p.exists():\n        try:\n            return p.read_text(encoding=\"utf-8\")\n        except OSError:\n            return None\n    return None\n\n\ndef load_json(url: str) -> dict | list | None:\n    \"\"\"Return cached JSON-decoded object, or ``None``.\"\"\"\n    raw = load(url, suffix=\".json\")\n    if raw is not None:\n        try:\n            return json.loads(raw)\n        except json.JSONDecodeError:\n            return None\n    return None\n\n\ndef save(url: str, content: str, suffix: str = \".txt\") -> None:\n    \"\"\"Persist *content* to disk under a key derived from *url*.\"\"\"\n    _cache_root.mkdir(parents=True, exist_ok=True)\n    _path_for(url, suffix).write_text(content, encoding=\"utf-8\")\n\n\ndef save_json(url: str, obj: dict | list) -> None:\n    \"\"\"Serialise *obj* as JSON and persist it.\"\"\"\n    save(url, json.dumps(obj, ensure_ascii=False), suffix=\".json\")",
+          "raw_source": true
+        },
+        {
+          "path": "src/nodes/query_analyser_node.py",
+          "start_line": 33,
+          "end_line": 72,
+          "text": "        r\"overall structure\",\n        r\"design\",\n    ],\n}\n\ndef detect_intent(query: str) -> str:\n    query_lower = query.lower()\n    for intent, patterns in INTENT_PATTERNS.items():\n        for p in patterns:\n            if re.search(p, query_lower):\n                return intent\n    return \"high_level_summary\"\n\n\ndef extract_keywords(query: str):\n    # Simple keyword strategy \u2013 expand later\n    tokens = re.findall(r\"[A-Za-z_][A-Za-z0-9_]*\", query)\n    python_keywords = {\"the\", \"a\", \"to\", \"in\", \"and\", \"where\", \"what\"}\n\n    filtered = [\n        t for t in tokens \n        if t.lower() not in python_keywords and len(t) > 2\n    ]\n    return filtered[:5]\n\n\ndef extract_targets(query: str):\n    # Detect patterns like function(), directories, or variables\n    targets = {}\n\n    # function_name()\n    fn_match = re.findall(r\"([A-Za-z_][A-Za-z0-9_]*)\\s*\\(\", query)\n    if fn_match:\n        targets[\"function\"] = fn_match[0]\n\n    # directories like src/core or /models/\n    dir_match = re.findall(r\"([A-Za-z0-9_\\-/]+/)\", query)\n    if dir_match:\n        targets[\"directory\"] = dir_match[0]\n",
+          "raw_source": true
+        },
+        {
+          "path": "src/tools/parse_notebook.py",
+          "start_line": 1,
+          "end_line": 23,
+          "text": "def parse_notebook(raw: str) -> str:\n    \"\"\"\n    Extracts markdown + code cells from a .ipynb file.\n    Converts them to readable text for LLMs.\n    \"\"\"\n\n    try:\n        import nbformat\n\n        nb = nbformat.reads(raw, as_version=4)\n    except Exception:\n        return raw[:5000]\n\n    out = []\n\n    for cell in nb.cells:\n        if cell.cell_type == \"markdown\":\n            out.append(\"## Markdown Cell:\\n\" + cell.source)\n        elif cell.cell_type == \"code\":\n            out.append(\"## Code Cell:\\n\" + cell.source)\n    # print(f\"Checking Execution of parse_notebook tool: {out}\")\n\n    return \"\\n\\n\".join(out)[:8000]",
+          "raw_source": true
+        }
+      ],
+      "metrics": {
+        "retrieval_ms": 12.829,
+        "generation_ms": 51791.174,
+        "context_chars": 8348,
+        "retrieved_chunks": 8,
+        "retrieval_mode": "lexical",
+        "generated": true
+      },
+      "score": null,
+      "reviewer_reason": ""
+    },
+    {
+      "id": "q08",
+      "question": "How does refresh bypass the blob cache?",
+      "reference_answer": "Cache lookup is only performed when refresh is false.",
+      "answer": "To understand how refresh bypasses the blob cache, let's examine the relevant code snippets:\n\n1. **fetch_blob_content Function**:\n   - The `fetch_blob_content` function is responsible for fetching the content of a blob URL.\n   - It first checks if the `refresh` parameter is `False`.\n   - If `refresh` is `False`, it attempts to load the content from the cache using `cache_load(blob_url)`.\n   - If the content is found in the cache, it returns the cached content immediately.\n\n2. **refresh Parameter**:\n   - The `refresh` parameter is a boolean flag that, when set to `True`, bypasses the cache and forces a fresh download of the blob content.\n   - This is controlled by the `if not refresh` condition in the `fetch_blob_content` function.\n\n3. **Cache Loading**:\n   - The `cache_load` function is responsible for loading data from the cache.\n   - It uses the `cache_key` function to generate a unique cache key based on the blob URL.\n   - The cache key is then used to locate the corresponding file in the cache directory.\n\n4. **Cache Key Generation**:\n   - The `cache_key` function computes a SHA-256 hash of the blob URL and returns it as a hexadecimal string.\n   - This ensures that the cache key is safe to use as a filename component.\n\n5. **Cache Path Construction**:\n   - The `_path_for` function constructs the file path for the cache entry using the cache key and a suffix (e.g., `.txt`).\n   - This path is used to store the cached blob content.\n\n6. **Cache Loading Logic**:\n   - The `load` function in `disk_cache.py` attempts to open and read the file at the constructed path.\n   - If the file exists, it reads the content and returns it; otherwise, it returns `None`.\n\nBy setting the `refresh` parameter to `True`, the `fetch_blob_content` function bypasses the cache and forces a fresh download of the blob content, ensuring that the latest version is retrieved from the GitHub API.",
+      "sources": [
+        {
+          "path": "src/cache/__init__.py",
+          "start_line": 1,
+          "end_line": 2,
+          "text": "# src/cache/__init__.py\nfrom src.cache.disk_cache import load, save, invalidate, clear, cache_key  # noqa: F401",
+          "raw_source": true
+        },
+        {
+          "path": "src/utils/fetch_blob.py",
+          "start_line": 1,
+          "end_line": 40,
+          "text": "\"\"\"\nsrc/utils/fetch_blob.py\n=======================\nFetches raw file content from a URL (typically a GitHub raw URL).\nResults are transparently cached on disk to avoid redundant network\nround-trips on repeated runs.\n\"\"\"\n\nfrom __future__ import annotations\n\nimport requests\n\nfrom src.cache.disk_cache import load as cache_load, save as cache_save\n\n\ndef fetch_blob_content(blob_url: str, refresh: bool = False) -> str:\n    \"\"\"\n    Fetch the text content at *blob_url*.\n\n    Parameters\n    ----------\n    blob_url: The raw GitHub URL to download.\n    refresh:  When ``True``, bypass the on-disk cache and re-download.\n\n    Returns\n    -------\n    Decoded text (``str``), or an empty string on failure.\n    \"\"\"\n    if not refresh:\n        cached = cache_load(blob_url)\n        if cached is not None:\n            return cached\n\n    try:\n        response = requests.get(blob_url, timeout=30)\n        response.raise_for_status()\n        data = response.text\n        cache_save(blob_url, data)\n        return data\n",
+          "raw_source": true
+        },
+        {
+          "path": "src/github_repo_parser.py",
+          "start_line": 97,
+          "end_line": 136,
+          "text": "        return response.json().get(\"default_branch\", \"main\")\n\n    def get_dir_tree(self, repo_url: str, branch: str | None = None, refresh: bool = False) -> dict:\n        \"\"\"\n        Returns nested tree structure of repository using the Contents API.\n\n        Parameters\n        ----------\n        repo_url: Full GitHub HTTPS URL, e.g. https://github.com/owner/repo\n        branch:   Branch to analyse; None means auto-detect the default branch.\n        refresh:  When True, bypass the on-disk cache and re-fetch.\n        \"\"\"\n        repo_name = self._get_repo_name(repo_url)\n        owner, repo = repo_name.split(\"/\")\n        branch = branch or self._get_default_branch(owner, repo)\n\n        # Cache key includes branch so different branches stay separate\n        cache_url = f\"tree::{owner}/{repo}@{branch}\"\n\n        if not refresh:\n            cached = cache_load_json(cache_url)\n            if cached is not None:\n                print(f\"\\n[cache] Loaded repo tree for {repo_name}@{branch} from disk.\")\n                return cached\n\n        all_files = self._fetch_recursive(owner, repo, \"\", branch)\n        metadata: dict = {}\n\n        for f in all_files:\n            path = f[\"path\"]\n            ext = self._get_extension(path)\n\n            if self._is_excluded(path):\n                continue\n\n            meta = {\n                \"path\": path,\n                \"type\": \"file\",\n                \"ext\": ext,\n                \"size_kb\": round(f.get(\"size\", 0) / 1024, 2),",
+          "raw_source": true
+        },
+        {
+          "path": "src/nodes/global_context_node.py",
+          "start_line": 1,
+          "end_line": 40,
+          "text": "\"\"\"\nsrc/nodes/global_context_node.py\n==================================\nBuilds a high-level natural-language summary of the repository structure.\n\nFile snippet fetches are routed through the cached :func:`fetch_blob_content`\nutility (backed by the on-disk cache under ``.cache/``) so repeated runs do\nnot hit the GitHub network.\n\"\"\"\n\nfrom __future__ import annotations\n\nfrom langchain_core.messages import SystemMessage, HumanMessage\n\nfrom src.utils.flatten_tree import flatten_tree\nfrom src.utils.fetch_blob import fetch_blob_content\nfrom src.utils.logger import get_logger\n\nlog = get_logger(__name__)\n\n\nasync def global_context_node(state: dict) -> dict:\n    \"\"\"\n    Builds a global overview of the repository based on the metadata tree\n    fetched from GitRepoParser.\n\n    Produces a brief summary of repo structure, key folders and relationships.\n    File snippet fetches use the shared disk cache (refresh honoured via state).\n    \"\"\"\n    repo_tree = state.get(\"repo_tree\")\n    refresh   = bool(state.get(\"refresh_cache\", False))\n\n    if not repo_tree:\n        log.warning(\"No repo tree found in state; skipping global context.\")\n        return {\"global_context\": \"No repo structure available\"}\n\n    flattened = flatten_tree(repo_tree)\n\n    # Select up to 5 key files for snippet extraction\n    imp_files = [",
+          "raw_source": true
+        },
+        {
+          "path": "src/nodes/global_context_node.py",
+          "start_line": 65,
+          "end_line": 98,
+          "text": "        f\"- {f['path']} ({f['ext']}, {f['size_kb']} KB)\"\n        for f in flattened[:60]\n    )\n\n    prompt = f\"\"\"\nYou are an expert software architect.\nBelow is a summary of a GitHub repository structure and small snippets from key files.\n\n### File Structure (first 60 files):\n{tree_summ}\n\n### Key File Headers:\n{headers if headers else 'No key files found.'}\n\nPlease describe in 5-8 sentences:\n1. The overall purpose of this repository.\n2. The main components or modules and their likely roles.\n3. How these modules might interact logically (e.g., data -> model -> evaluation).\n4. Which parts appear to be core, supporting, or documentation.\n\"\"\"\n\n    system_msg = SystemMessage(content=(\n        \"You are an expert GitHub repository summariser. \"\n        \"Provide insights on what functions and modules are present and how they \"\n        \"connect to each other, in plain terms where possible.\"\n    ))\n    human_msg = HumanMessage(content=prompt)\n\n    llm = state.get(\"llm\")\n    response = await llm.ainvoke([system_msg, human_msg])\n    global_summ = response.content.strip()\n\n    log.info(\"Global context summary generated (%d chars).\", len(global_summ))\n    return {\"global_context\": global_summ}",
+          "raw_source": true
+        },
+        {
+          "path": "src/utils/fetch_blob.py",
+          "start_line": 33,
+          "end_line": 43,
+          "text": "\n    try:\n        response = requests.get(blob_url, timeout=30)\n        response.raise_for_status()\n        data = response.text\n        cache_save(blob_url, data)\n        return data\n\n    except Exception as e:  # noqa: BLE001\n        print(f\"Error fetching blob content from {blob_url}: {e}\")\n        return \"\"",
+          "raw_source": true
+        },
+        {
+          "path": "src/cache/disk_cache.py",
+          "start_line": 1,
+          "end_line": 40,
+          "text": "\"\"\"\nsrc/cache/disk_cache.py\n=======================\nSimple filesystem cache for GitHub API responses and raw file blobs.\n\nFiles are stored under CACHE_DIR (default: .cache/ at the project root).\nEach entry is keyed by the SHA-256 of the original URL so filenames are\nsafe on all platforms.\n\"\"\"\n\nfrom __future__ import annotations\n\nimport hashlib\nimport json\nimport shutil\nfrom pathlib import Path\n\nfrom src.config.settings import CACHE_DIR\n\n_cache_root = Path(CACHE_DIR)\n\n\n# ---------------------------------------------------------------------------\n# Helpers\n# ---------------------------------------------------------------------------\n\ndef cache_key(url: str) -> str:\n    \"\"\"Return a hex-digest that is safe to use as a filename component.\"\"\"\n    return hashlib.sha256(url.encode(\"utf-8\")).hexdigest()\n\n\ndef _path_for(url: str, suffix: str = \".txt\") -> Path:\n    return _cache_root / (cache_key(url) + suffix)\n\n\n# ---------------------------------------------------------------------------\n# Public API\n# ---------------------------------------------------------------------------\n\ndef load(url: str, suffix: str = \".txt\") -> str | None:",
+          "raw_source": true
+        },
+        {
+          "path": "run_cli.py",
+          "start_line": 289,
+          "end_line": 328,
+          "text": "def parse_args() -> argparse.Namespace:\n    parser = argparse.ArgumentParser(\n        description=(\n            \"Index a GitHub repository and ask developer-productivity \"\n            \"questions about the codebase.\"\n        ),\n        formatter_class=argparse.RawDescriptionHelpFormatter,\n        epilog=\"\"\"\nExamples:\n  python run_cli.py --smoke-test\n  python run_cli.py https://github.com/owner/repo\n  python run_cli.py https://github.com/owner/repo -q \"Explain the architecture\"\n  python run_cli.py https://github.com/owner/repo --branch develop -q \"What changed?\"\n  python run_cli.py https://github.com/owner/repo --refresh-cache -q \"Show pipeline\"\n  python run_cli.py https://github.com/owner/repo -q \"Explain X\" --top-k 5 --no-report\n  python run_cli.py https://github.com/owner/repo -q \"Debug\" --verbose\n\"\"\",\n    )\n    parser.add_argument(\n        \"repo_url\",\n        nargs=\"?\",\n        help=\"GitHub repository URL, e.g. https://github.com/owner/repo\",\n    )\n    parser.add_argument(\n        \"-q\", \"--question\",\n        help=\"Ask one question and exit (one-shot mode). Saves a Markdown report unless --no-report.\",\n    )\n    parser.add_argument(\n        \"--branch\",\n        metavar=\"BRANCH\",\n        default=None,\n        help=\"Git branch to analyse (default: repo default branch).\",\n    )\n    parser.add_argument(\n        \"--refresh-cache\",\n        action=\"store_true\",\n        help=\"Bypass the on-disk cache and re-fetch all GitHub data.\",\n    )\n    parser.add_argument(\n        \"--top-k\",",
+          "raw_source": true
+        }
+      ],
+      "metrics": {
+        "retrieval_ms": 17.638,
+        "generation_ms": 91222.823,
+        "context_chars": 8357,
+        "retrieved_chunks": 8,
+        "retrieval_mode": "lexical",
+        "generated": true
+      },
+      "score": null,
+      "reviewer_reason": ""
+    },
+    {
+      "id": "q09",
+      "question": "How is a GitHub token attached to metadata requests?",
+      "reference_answer": "The session gets an Authorization header with Token and GITHUB_TOKEN.",
+      "answer": "A GitHub token is attached to metadata requests by including it in the `Authorization` header of the HTTP request. This is done in the `GitRepoParser` class, specifically in the `__init__` method where the token is checked and added to the session headers if it is provided and a token is available. The token is stored in the `GITHUB_TOKEN` variable, which is accessed using the `os.getenv` function.",
+      "sources": [
+        {
+          "path": "src/github_repo_parser.py",
+          "start_line": 129,
+          "end_line": 153,
+          "text": "            if self._is_excluded(path):\n                continue\n\n            meta = {\n                \"path\": path,\n                \"type\": \"file\",\n                \"ext\": ext,\n                \"size_kb\": round(f.get(\"size\", 0) / 1024, 2),\n                \"url\": f\"{self.raw_api}{owner}/{repo}/{branch}/{path}\"\n            }\n\n            # Build nested metadata tree\n            parts = path.split(\"/\")\n            cursor = metadata\n            for folder in parts[:-1]:\n                folder_key = folder + \"/\"\n                cursor = cursor.setdefault(folder_key, {})\n\n            cursor[parts[-1]] = meta\n\n        # Persist to cache\n        cache_save_json(cache_url, metadata)\n\n        print(f\"\\n\\nRepository metadata tree created {len(all_files)} total items.\")\n        return metadata",
+          "raw_source": true
+        },
+        {
+          "path": "src/nodes/global_context_node.py",
+          "start_line": 65,
+          "end_line": 98,
+          "text": "        f\"- {f['path']} ({f['ext']}, {f['size_kb']} KB)\"\n        for f in flattened[:60]\n    )\n\n    prompt = f\"\"\"\nYou are an expert software architect.\nBelow is a summary of a GitHub repository structure and small snippets from key files.\n\n### File Structure (first 60 files):\n{tree_summ}\n\n### Key File Headers:\n{headers if headers else 'No key files found.'}\n\nPlease describe in 5-8 sentences:\n1. The overall purpose of this repository.\n2. The main components or modules and their likely roles.\n3. How these modules might interact logically (e.g., data -> model -> evaluation).\n4. Which parts appear to be core, supporting, or documentation.\n\"\"\"\n\n    system_msg = SystemMessage(content=(\n        \"You are an expert GitHub repository summariser. \"\n        \"Provide insights on what functions and modules are present and how they \"\n        \"connect to each other, in plain terms where possible.\"\n    ))\n    human_msg = HumanMessage(content=prompt)\n\n    llm = state.get(\"llm\")\n    response = await llm.ainvoke([system_msg, human_msg])\n    global_summ = response.content.strip()\n\n    log.info(\"Global context summary generated (%d chars).\", len(global_summ))\n    return {\"global_context\": global_summ}",
+          "raw_source": true
+        },
+        {
+          "path": "src/utils/fetch_blob.py",
+          "start_line": 1,
+          "end_line": 40,
+          "text": "\"\"\"\nsrc/utils/fetch_blob.py\n=======================\nFetches raw file content from a URL (typically a GitHub raw URL).\nResults are transparently cached on disk to avoid redundant network\nround-trips on repeated runs.\n\"\"\"\n\nfrom __future__ import annotations\n\nimport requests\n\nfrom src.cache.disk_cache import load as cache_load, save as cache_save\n\n\ndef fetch_blob_content(blob_url: str, refresh: bool = False) -> str:\n    \"\"\"\n    Fetch the text content at *blob_url*.\n\n    Parameters\n    ----------\n    blob_url: The raw GitHub URL to download.\n    refresh:  When ``True``, bypass the on-disk cache and re-download.\n\n    Returns\n    -------\n    Decoded text (``str``), or an empty string on failure.\n    \"\"\"\n    if not refresh:\n        cached = cache_load(blob_url)\n        if cached is not None:\n            return cached\n\n    try:\n        response = requests.get(blob_url, timeout=30)\n        response.raise_for_status()\n        data = response.text\n        cache_save(blob_url, data)\n        return data\n",
+          "raw_source": true
+        },
+        {
+          "path": "src/nodes/fetch_and_parse_node.py",
+          "start_line": 1,
+          "end_line": 40,
+          "text": "\"\"\"\nsrc/nodes/fetch_and_parse_node.py\n===================================\nFetches file content for *selected_files* and parses each one using the\nappropriate parser tool.\n\nConcurrency\n-----------\nFiles are fetched concurrently (up to ``MAX_CONCURRENT_FETCHES`` in\nparallel) using ``asyncio.to_thread`` so the blocking ``requests`` calls\ndo not stall the event loop.  Output order is deterministic (same order\nas *selected_files*).\n\nProgress\n--------\nA ``tqdm`` progress bar is shown on stderr during fetching.  It is\nautomatically suppressed when stderr is not a TTY (e.g. in CI or when\noutput is piped) or when the ``TQDM_DISABLE`` environment variable is set\nto ``\"1\"``.\n\"\"\"\n\nfrom __future__ import annotations\n\nimport asyncio\nimport os\nfrom typing import Optional\n\nfrom langchain_core.messages import SystemMessage\n\nfrom src.tools.parse_python   import parse_python\nfrom src.tools.parse_markdown  import parse_markdown\nfrom src.tools.parse_notebook  import parse_notebook\nfrom src.tools.parse_json_yaml import parse_json_yaml\nfrom src.utils.fetch_blob      import fetch_blob_content\nfrom src.utils.logger          import get_logger\nfrom src.config.settings       import MAX_CONCURRENT_FETCHES\n\nlog = get_logger(__name__)\n\n# \u2500\u2500 Parser registry \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500",
+          "raw_source": true
+        },
+        {
+          "path": "src/github_repo_parser.py",
+          "start_line": 1,
+          "end_line": 40,
+          "text": "\"\"\"\nScript to parse Repository and store contents\nin textual form.\n\"\"\"\n\nfrom __future__ import annotations\n\nimport json\nimport os\nimport requests\n\nfrom src.cache.disk_cache import load_json as cache_load_json, save_json as cache_save_json\nfrom src.config.settings import GITHUB_TOKEN, EXCLUDE_EXT\n\n\nclass GitRepoParser:\n    def __init__(self, github_token: bool = True):\n        self.s = requests.Session()\n        if github_token and GITHUB_TOKEN:\n            self.s.headers.update({\"Authorization\": f\"Token {GITHUB_TOKEN}\"})\n\n        self.exclude_ext = EXCLUDE_EXT\n\n        # Raw API (for fetching actual file contents)\n        self.raw_api = \"https://raw.githubusercontent.com/\"\n\n        # GitHub contents API (for listing files)\n        self.contents_api = \"https://api.github.com/repos/\"\n\n    def _is_excluded(self, name: str):\n        return any(name.endswith(ext) for ext in self.exclude_ext)\n\n    def _get_extension(self, name: str):\n        return os.path.splitext(name)[1] if \".\" in name else \"\"\n\n    def _get_repo_name(self, repo_url: str):\n        \"\"\"\n        Converts github repo URL into owner/repo format.\n        Handles trailing slashes and .git suffix in any order.\n        \"\"\"",
+          "raw_source": true
+        },
+        {
+          "path": "run_cli.py",
+          "start_line": 1,
+          "end_line": 40,
+          "text": "\"\"\"\nrun_cli.py -- GitHub Code-Analyser Agent CLI\n=============================================\n\nUsage examples\n--------------\n# Local smoke-test (no network, no API key required)\npython run_cli.py --smoke-test\n\n# Index a repo and open the interactive Q&A loop\npython run_cli.py https://github.com/owner/repo\n\n# One-shot question (saves a Markdown report to reports/)\npython run_cli.py https://github.com/owner/repo -q \"Explain the architecture\"\n\n# Analyse a specific branch\npython run_cli.py https://github.com/owner/repo --branch develop -q \"What changed?\"\n\n# Force-refresh the cache\npython run_cli.py https://github.com/owner/repo --refresh-cache -q \"Show pipeline\"\n\n# Verbose debug output\npython run_cli.py https://github.com/owner/repo -q \"Explain X\" --verbose\n\n# Top-5 chunks, semantic ranking, suppress report\npython run_cli.py https://github.com/owner/repo -q \"Explain X\" --top-k 5 \\\\\n    --retrieval-mode semantic --no-report\n\"\"\"\n\nfrom __future__ import annotations\n\nimport argparse\nimport asyncio\nimport os\nimport sys\n\nfrom langchain_core.messages import HumanMessage\n\nfrom langgraph_app import index_app, qa_app\nfrom state_schema import Agent_State",
+          "raw_source": true
+        },
+        {
+          "path": "run_cli.py",
+          "start_line": 289,
+          "end_line": 328,
+          "text": "def parse_args() -> argparse.Namespace:\n    parser = argparse.ArgumentParser(\n        description=(\n            \"Index a GitHub repository and ask developer-productivity \"\n            \"questions about the codebase.\"\n        ),\n        formatter_class=argparse.RawDescriptionHelpFormatter,\n        epilog=\"\"\"\nExamples:\n  python run_cli.py --smoke-test\n  python run_cli.py https://github.com/owner/repo\n  python run_cli.py https://github.com/owner/repo -q \"Explain the architecture\"\n  python run_cli.py https://github.com/owner/repo --branch develop -q \"What changed?\"\n  python run_cli.py https://github.com/owner/repo --refresh-cache -q \"Show pipeline\"\n  python run_cli.py https://github.com/owner/repo -q \"Explain X\" --top-k 5 --no-report\n  python run_cli.py https://github.com/owner/repo -q \"Debug\" --verbose\n\"\"\",\n    )\n    parser.add_argument(\n        \"repo_url\",\n        nargs=\"?\",\n        help=\"GitHub repository URL, e.g. https://github.com/owner/repo\",\n    )\n    parser.add_argument(\n        \"-q\", \"--question\",\n        help=\"Ask one question and exit (one-shot mode). Saves a Markdown report unless --no-report.\",\n    )\n    parser.add_argument(\n        \"--branch\",\n        metavar=\"BRANCH\",\n        default=None,\n        help=\"Git branch to analyse (default: repo default branch).\",\n    )\n    parser.add_argument(\n        \"--refresh-cache\",\n        action=\"store_true\",\n        help=\"Bypass the on-disk cache and re-fetch all GitHub data.\",\n    )\n    parser.add_argument(\n        \"--top-k\",",
+          "raw_source": true
+        },
+        {
+          "path": "src/report/writer.py",
+          "start_line": 1,
+          "end_line": 40,
+          "text": "\"\"\"\nsrc/report/writer.py\n====================\nSaves one-shot Q&A answers as Markdown reports under ``reports/``.\n\"\"\"\n\nfrom __future__ import annotations\n\nimport os\nfrom datetime import datetime, timezone\nfrom pathlib import Path\n\n\n_REPORT_DIR = Path(\"reports\")\n\n\ndef write_report(\n    repo_url: str,\n    question: str,\n    selected_files: list[dict],\n    answer: str,\n    branch: str | None = None,\n) -> Path:\n    \"\"\"\n    Persist a Q&A report to ``reports/report_<timestamp>.md``.\n\n    Parameters\n    ----------\n    repo_url:       The analysed GitHub repository URL.\n    question:       The user's question.\n    selected_files: List of file-metadata dicts chosen by the agent.\n    answer:         The LLM-generated answer.\n    branch:         Git branch that was analysed (``None`` \u2192 \"default\").\n\n    Returns\n    -------\n    The :class:`~pathlib.Path` of the written report file.\n    \"\"\"\n    _REPORT_DIR.mkdir(parents=True, exist_ok=True)\n",
+          "raw_source": true
+        }
+      ],
+      "metrics": {
+        "retrieval_ms": 39.39,
+        "generation_ms": 91084.219,
+        "context_chars": 9384,
+        "retrieved_chunks": 8,
+        "retrieval_mode": "lexical",
+        "generated": true
+      },
+      "score": null,
+      "reviewer_reason": ""
+    }
+  ],
+  "answer_protocol": "freeform_pilot",
+  "purpose": "Exploratory nine-answer pilot that motivated source-ID rendering; interrupted, not a scored benchmark or controlled comparison."
+}
