@@ -8,6 +8,8 @@ from __future__ import annotations
 import json
 import os
 import requests
+import re
+from urllib.parse import urlparse, quote
 
 from src.cache.disk_cache import load_json as cache_load_json, save_json as cache_save_json
 from src.config.settings import GITHUB_TOKEN, EXCLUDE_EXT
@@ -41,9 +43,13 @@ class GitRepoParser:
         if isinstance(repo_url, str):
             # Strip whitespace, trailing slashes, .git suffix, trailing slashes again
             cleaned = repo_url.strip().rstrip("/").removesuffix(".git").rstrip("/")
-            url_parts = cleaned.split("https://github.com/")[-1].split("/")
-            if len(url_parts) >= 2 and all(url_parts[:2]):
-                return "/".join(url_parts[:2])
+            parsed = urlparse(cleaned)
+            url_parts = parsed.path.strip("/").split("/")
+            if (parsed.scheme == "https" and parsed.netloc == "github.com"
+                    and not parsed.query and not parsed.fragment and len(url_parts) == 2
+                    and all(re.fullmatch(r"[A-Za-z0-9_.-]+", part) and part not in {".", ".."}
+                            for part in url_parts)):
+                return "/".join(url_parts)
             raise ValueError("Repository URL must look like https://github.com/owner/repo")
         raise TypeError("Kindly provide a string as input.")
 
@@ -53,8 +59,8 @@ class GitRepoParser:
         Recursively fetch GitHub directory tree using the Contents API.
         Returns flat list of all file metadata.
         """
-        url = f"{self.contents_api}{owner}/{repo}/contents/{path}?ref={branch}"
-        response = self.s.get(url)
+        url = f"{self.contents_api}{owner}/{repo}/contents/{quote(path)}"
+        response = self.s.get(url, params={"ref": branch}, timeout=30)
 
         if response.status_code == 403:
             raise PermissionError(
@@ -87,7 +93,7 @@ class GitRepoParser:
 
 
     def _get_default_branch(self, owner: str, repo: str) -> str:
-        response = self.s.get(f"{self.contents_api}{owner}/{repo}")
+        response = self.s.get(f"{self.contents_api}{owner}/{repo}", timeout=30)
         if response.status_code == 404:
             raise ValueError(
                 f"Repository '{owner}/{repo}' not found. "
@@ -134,7 +140,7 @@ class GitRepoParser:
                 "type": "file",
                 "ext": ext,
                 "size_kb": round(f.get("size", 0) / 1024, 2),
-                "url": f"{self.raw_api}{owner}/{repo}/{branch}/{path}"
+                "url": f"{self.raw_api}{owner}/{repo}/{quote(branch, safe='')}/{quote(path)}"
             }
 
             # Build nested metadata tree

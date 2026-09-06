@@ -31,7 +31,7 @@ def _make_file(path: str, ext: str = ".py", url: str = "https://x.com/f") -> dic
 
 
 def _run(coro):
-    return asyncio.get_event_loop().run_until_complete(coro)
+    return asyncio.run(coro)
 
 
 # Disable tqdm in all tests

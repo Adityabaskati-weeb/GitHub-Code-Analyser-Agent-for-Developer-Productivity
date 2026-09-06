@@ -44,23 +44,6 @@ from state_schema import Agent_State
 # Helpers
 # ---------------------------------------------------------------------------
 
-def _check_api_key() -> None:
-    """Exit early with a helpful message if no Gemini key is configured."""
-    if not os.getenv("GOOGLE_API_KEY") and not os.getenv("GEMINI_API_KEY"):
-        print(
-            "Error: No Gemini API key found.\n"
-            "  Set GOOGLE_API_KEY=<your_key> in your .env file or environment.\n"
-            "  See .env.example for details.",
-            file=sys.stderr,
-        )
-        sys.exit(1)
-
-
-def _get_llm():
-    from src.config.settings import get_llm
-    return get_llm()
-
-
 def _try_save_report(
     repo_url: str,
     question: str,
@@ -76,9 +59,10 @@ def _try_save_report(
         report_path = write_report(
             repo_url=repo_url,
             question=question,
-            selected_files=state.get("selected_files", []),
+            selected_files=state.get("sources", state.get("selected_files", [])),
             answer=state.get("summary", ""),
             branch=branch,
+            metrics=state.get("metrics"),
         )
         print(f"\nReport saved -> {report_path}")
     except Exception as exc:  # noqa: BLE001
@@ -94,6 +78,9 @@ async def load_repo(
     branch: str | None = None,
     refresh_cache: bool = False,
     top_k: int | None = None,
+    provider: str | None = None,
+    model: str | None = None,
+    retrieval_only: bool = False,
 ) -> Agent_State:
     """Index a GitHub repository and return the populated agent state."""
     state: Agent_State = {
@@ -109,9 +96,13 @@ async def load_repo(
         "intent": "",
         "keywords": [],
         "targets": {},
-        "summary": [],
-        "llm": _get_llm(),
+        "summary": "",
+        "llm": None,
     }
+
+    if not retrieval_only:
+        from src.config.settings import get_llm
+        state["llm"] = get_llm(provider, model)
 
     if top_k is not None:
         state["top_k"] = top_k  # type: ignore[typeddict-unknown-key]
@@ -120,6 +111,8 @@ async def load_repo(
         _, delta = list(step.items())[0]
         state.update(delta)
 
+    if not state.get("repo_tree"):
+        raise RuntimeError("No repository files indexed. Check the URL, access, and any errors above.")
     print("\nFinished Indexing Repository.\n")
     return state
 
@@ -352,6 +345,12 @@ Examples:
         action="store_true",
         help="Run local parser/utility checks without network or LLM calls.",
     )
+    parser.add_argument("--provider", choices=["ollama", "gemini"], default=None,
+                        help="Model provider (default: local Ollama).")
+    parser.add_argument("--model", help="Model name for the chosen provider.")
+    parser.add_argument("--local", action="store_true", help="Treat repo_url as a local directory.")
+    parser.add_argument("--retrieval-only", action="store_true",
+                        help="Show source excerpts without calling any model.")
     return parser.parse_args()
 
 
@@ -381,14 +380,30 @@ async def main() -> int:
         )
         return 1
 
-    # ---- Check API key early ----
-    _check_api_key()
-
-    # ---- Apply retrieval-mode override ----
-    if args.retrieval_mode:
-        os.environ["RETRIEVAL_MODE"] = args.retrieval_mode
-        import src.config.settings as _s
-        _s.RETRIEVAL_MODE = args.retrieval_mode
+    # ---- Validate retrieval settings and handle local source input ----
+    if args.top_k is not None and args.top_k <= 0:
+        print("Error: --top-k must be positive", file=sys.stderr)
+        return 1
+    if args.local:
+        try:
+            from src.local_repo import read_local_repo
+            from src.nodes.summarize_repo_node import summarize_repo_node
+            from src.config.settings import get_llm, TOP_K
+            files = read_local_repo(args.repo_url)
+            llm = None if args.retrieval_only else get_llm(args.provider, args.model)
+            question = args.question or "Explain the architecture"
+            state = await summarize_repo_node({
+                "parsed_files": files, "messages": [HumanMessage(content=question)],
+                "llm": llm, "top_k": args.top_k or TOP_K,
+                "retrieval_mode": args.retrieval_mode or os.getenv("RETRIEVAL_MODE", "lexical"),
+            })
+            print(state["summary"])
+            print(f"\nMetrics: {state['metrics']}")
+            _try_save_report(args.repo_url, question, state, None, args.no_report)
+            return 0
+        except Exception as exc:
+            print(f"Error: {exc}", file=sys.stderr)
+            return 1
 
     # ---- Validate URL format before hitting the network ----
     repo_url = args.repo_url.strip()
@@ -406,7 +421,11 @@ async def main() -> int:
             branch=args.branch,
             refresh_cache=args.refresh_cache,
             top_k=args.top_k,
+            provider=args.provider,
+            model=args.model,
+            retrieval_only=args.retrieval_only,
         )
+        repo_state["retrieval_mode"] = args.retrieval_mode or os.getenv("RETRIEVAL_MODE", "lexical")
         print("Repository indexed. You can now ask questions about the codebase.")
 
         if args.question:
@@ -444,7 +463,7 @@ async def main() -> int:
         if "RESOURCE_EXHAUSTED" in message or "429" in message:
             print(
                 "Gemini quota exceeded. "
-                "Try a lighter model (GOOGLE_MODEL=gemini-1.5-flash) or wait and retry.",
+                "Use --provider ollama with a downloaded local model, or wait for your quota to reset.",
                 file=sys.stderr,
             )
         elif "GOOGLE_API_KEY" in message or "GEMINI_API_KEY" in message:
@@ -459,4 +478,8 @@ async def main() -> int:
 
 
 if __name__ == "__main__":
+    # Redirected Windows terminals may default to a legacy code page.
+    for stream in (sys.stdout, sys.stderr):
+        if hasattr(stream, "reconfigure"):
+            stream.reconfigure(encoding="utf-8", errors="replace")
     raise SystemExit(asyncio.run(main()))

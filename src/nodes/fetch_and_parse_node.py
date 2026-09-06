@@ -114,10 +114,10 @@ async def _fetch_one(
 
     if not raw:
         log.warning("Empty content for %s", path)
-        return {"path": path, "ext": ext, "parsed": f"<Failed to fetch {path}>"}
+        return {"path": path, "ext": ext, "parsed": f"<Failed to fetch {path}>", "error": True}
 
     parsed = _parse(raw, ext, path)
-    return {"path": path, "ext": ext, "parsed": parsed}
+    return {"path": path, "ext": ext, "parsed": parsed, "raw": raw}
 
 
 # ── Node ─────────────────────────────────────────────────────────────────────
@@ -143,7 +143,11 @@ async def fetch_and_parse_node(state: dict) -> dict:
         }
 
     # Skip already-parsed files
-    existing_pf    = list(state.get("parsed_files") or [])
+    selected_paths = {f.get("path") for f in selected_files}
+    existing_pf = [] if refresh else [
+        f for f in (state.get("parsed_files") or [])
+        if f.get("path") in selected_paths and not f.get("error")
+    ]
     already_parsed = {pf["path"] for pf in existing_pf if "path" in pf}
 
     to_fetch = [m for m in selected_files if m.get("path") not in already_parsed]
@@ -195,6 +199,7 @@ async def fetch_and_parse_node(state: dict) -> dict:
                 "path": meta.get("path", "<unknown>"),
                 "ext":  meta.get("ext", ""),
                 "parsed": f"<Fetch error: {result}>",
+                "error": True,
             })
         elif result is not None:
             new_pf.append(result)
