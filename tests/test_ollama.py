@@ -9,12 +9,22 @@ from src.llm.ollama import OllamaChat
 from src.config.settings import get_llm
 
 
-def invoke(handler, retries=0):
+def invoke(handler, retries=0, response_format=None):
     original = httpx.AsyncClient
     def client(**kwargs):
         return original(transport=httpx.MockTransport(handler), **kwargs)
     with patch("src.llm.ollama.httpx.AsyncClient", side_effect=client):
-        return asyncio.run(OllamaChat("test-model", retries=retries).ainvoke([HumanMessage(content="hello")]))
+        return asyncio.run(OllamaChat("test-model", retries=retries).ainvoke(
+            [HumanMessage(content="hello")], response_format=response_format))
+
+
+def test_source_schema_is_sent_to_ollama():
+    import json
+    schema = {"type":"object", "properties":{"answer":{"type":"string"}}}
+    def handler(request):
+        assert json.loads(request.content)["format"] == schema
+        return httpx.Response(200, json={"message":{"content":"{}"}})
+    assert invoke(handler, response_format=schema).content == "{}"
 
 
 def test_local_provider_needs_no_api_key(monkeypatch):

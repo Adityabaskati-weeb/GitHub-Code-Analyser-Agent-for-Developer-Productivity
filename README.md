@@ -78,14 +78,14 @@ flowchart TD
     C --> K[Rank and fit context budget]
     K --> E[Evidence-only output]
     K --> O[Local Ollama or explicitly selected Gemini]
-    O --> A[Answer with requested source citations]
+    O --> A[Answer and validated source locations]
     E --> M[Markdown report and run metrics]
     A --> M
     B[Frozen corpus and 50 annotated questions] --> C
     K --> V[Retrieval evaluation and CI regression gate]
 ```
 
-Indexing makes no model calls. Each answered question makes one model request, with a bounded retry policy. Source citations are supplied to the model and requested in its answer; they are not a proof of correctness or an automatic fact check.
+Indexing makes no model calls. Each answered question makes one model request, with a bounded retry policy. Ollama selects source IDs through a JSON schema; the application renders their actual file ranges. Missing evidence triggers abstention and malformed responses fail explicitly. Generic providers use free-form citations with location checks and visible warnings. A valid location is not proof of factual correctness or an automatic fact check.
 
 ## Configuration
 
@@ -96,6 +96,7 @@ Copy `.env.example` to `.env` if you want persistent settings. Do not commit key
 | `LLM_PROVIDER` / `--provider` | `ollama` | `ollama` or explicitly selected `gemini` |
 | `OLLAMA_MODEL` / `--model` | `qwen2.5-coder:3b` | Downloaded local model |
 | `OLLAMA_BASE_URL` | `http://localhost:11434` | Loopback server; remote endpoints are rejected |
+| `OLLAMA_TIMEOUT` | `120` | Seconds allowed per model request; increase for slow CPUs |
 | `GITHUB_TOKEN` | unset | Optional public GitHub access token |
 | `TOP_K` / `--top-k` | `8` | Positive number of chunks to retrieve |
 | `RETRIEVAL_MODE` / `--retrieval-mode` | `lexical` | `lexical` or optional `semantic` |
@@ -124,7 +125,7 @@ After starting a local model:
 
 ```bash
 python -m evaluation.answers --model qwen2.5-coder:3b --output reports/answer-review.json
-# Manually fill each score (0, 1, or 2) and reviewer_reason after checking the sources.
+# Declare reviewer_type, then fill each score (0, 1, or 2) and reviewer_reason.
 python -m evaluation.answers --score reports/answer-review.json
 ```
 

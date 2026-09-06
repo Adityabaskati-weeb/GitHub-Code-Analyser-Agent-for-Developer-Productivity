@@ -9,6 +9,7 @@ from langchain_core.messages import AIMessage
 
 
 class OllamaChat:
+    supports_source_schema = True
     def __init__(self, model: str, base_url: str = "http://localhost:11434",
                  timeout: float = 120, retries: int = 1):
         parsed = urlparse(base_url)
@@ -21,13 +22,15 @@ class OllamaChat:
         self.model, self.base_url = model, base_url.rstrip("/")
         self.timeout, self.retries = timeout, retries
 
-    async def ainvoke(self, messages):
+    async def ainvoke(self, messages, response_format=None):
         roles = {"system": "system", "human": "user", "ai": "assistant"}
         payload = {
             "model": self.model, "stream": False,
             "messages": [{"role": roles[m.type], "content": m.content} for m in messages],
             "options": {"temperature": 0, "num_ctx": 8192, "num_predict": 1024},
         }
+        if response_format is not None:
+            payload["format"] = response_format
         async with httpx.AsyncClient(timeout=self.timeout, trust_env=False) as client:
             for attempt in range(self.retries + 1):
                 try:

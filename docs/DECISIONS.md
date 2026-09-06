@@ -36,6 +36,12 @@ The corpus is materialized from commit `24d5b624e881cc2ca66a3fd2664be1b2d2d8f5c8
 
 Trade-off: this is one known repository. The results are useful for regressions, not a claim of generalization. Benchmark source answers refer to historical behavior, including bugs fixed in the current application.
 
+## Structured source selection after a live pilot
+
+An exploratory nine-answer run with local Qwen2.5-Coder 3B exposed missing and inaccurate free-form citation locations. The Ollama path now requests a JSON schema with an answer, source IDs from the retrieved catalog, and an insufficient-evidence flag. The application maps those IDs to original file ranges. Unknown IDs or malformed responses fail explicitly; missing evidence produces abstention. Generic hosted adapters retain the free-form path with location warnings.
+
+Trade-off: constraining locations does not constrain truth. The model can select a real excerpt that does not support its claim, or cite too many excerpts. Answer grading therefore checks content and support separately from the location validator. The pilot is exploratory, not a controlled before/after experiment or a full quality benchmark.
+
 ## Honest release scope
 
-Unit tests exercise HTTP success, failure and retry behavior through simulated Ollama responses. An actual local model is not installed/running in the development environment used for this change. Answer quality and inference latency are deliberately unreported. The manual grading workflow requires all fifty answers to be scored with reasons before it emits a quality result.
+Live local inference uses Qwen2.5-Coder 3B on a Ryzen 5 5600H CPU, with Ollama cloud features disabled and no paid API calls. The full answer-review workflow requires all fifty answers to be scored with reasons and a declared reviewer type before emitting a quality result. Model-assisted source review is not independent human validation. Retrieval metrics remain separate from generation quality.

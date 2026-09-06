@@ -29,3 +29,4 @@ class Agent_State(TypedDict):
     retrieval_mode: str
     sources: List[Dict[str, Any]]
     metrics: Dict[str, Any]
+    model_output: str

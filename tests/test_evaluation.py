@@ -43,7 +43,7 @@ def test_changed_dataset_cannot_silently_pass_gate():
 def test_unreviewed_answers_cannot_be_reported_as_accuracy():
     from evaluation.answers import score, fingerprint
     _, questions = load_dataset()
-    report = {"dataset_sha256":fingerprint(), "rows":[
+    report = {"dataset_sha256":fingerprint(), "reviewer_type":"human", "rows":[
         {"id":q["id"], "score":None, "reviewer_reason":""} for q in questions]}
     with pytest.raises(ValueError, match="Every answer"):
         score(report)
@@ -52,11 +52,11 @@ def test_unreviewed_answers_cannot_be_reported_as_accuracy():
 def test_human_grade_calculation():
     from evaluation.answers import score, fingerprint
     _, questions = load_dataset()
-    report = {"dataset_sha256":fingerprint(), "rows":[
+    report = {"dataset_sha256":fingerprint(), "reviewer_type":"human", "rows":[
         {"id":q["id"], "score":2 if i < 25 else 0, "reviewer_reason":"Test rubric fixture"}
         for i, q in enumerate(questions)]}
     result = score(report)
-    assert result["human_mean_score_out_of_2"] == 1
+    assert result["mean_score_out_of_2"] == 1
     assert result["fully_correct_fraction"] == .5
 
 
@@ -69,3 +69,9 @@ def test_dataset_fingerprint_is_portable_across_line_endings(tmp_path, monkeypat
     for name in ("corpus.json", "questions.json"):
         (tmp_path / name).write_bytes(b'{\r\n  "test": true\r\n}\r\n')
     assert module.dataset_fingerprint() == before
+
+
+def test_review_type_must_be_disclosed():
+    from evaluation.answers import score, fingerprint
+    with pytest.raises(ValueError, match="Declare reviewer_type"):
+        score({"dataset_sha256":fingerprint(), "rows":[]})

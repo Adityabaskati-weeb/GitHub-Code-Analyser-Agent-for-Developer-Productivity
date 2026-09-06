@@ -40,9 +40,9 @@ Do not lower the baseline to hide a regression. If the dataset changes, document
 python -m evaluation.answers --model qwen2.5-coder:3b
 ```
 
-This runs local inference on all 50 questions and incrementally writes `reports/answer-review.json`. A missing or failed model raises an error; a partial report is retained for inspection but cannot be scored. The generator uses the same answer node and retrieval defaults as the application.
+This runs local inference on all 50 questions and atomically checkpoints `reports/answer-review.json` after each answer. A missing or failed model raises an error; a partial report is retained for inspection but cannot be scored. Use `--resume` to continue with the same model and dataset. Existing output is never silently overwritten. The generator uses the same answer node and retrieval defaults as the application.
 
-For each row, read the reference answer and frozen source, then enter a score and reviewer reason:
+Declare `reviewer_type` as `human` or `model-assisted`. For each row, read the reference answer and frozen source, then enter a score and reviewer reason:
 
 | Score | Meaning |
 |---|---|
@@ -54,7 +54,7 @@ For each row, read the reference answer and frozen source, then enter a score an
 python -m evaluation.answers --score reports/answer-review.json
 ```
 
-The scorer checks the dataset hash, all unique question IDs, integer scores and written reasons. It reports the mean score out of two and the fraction scored two. It cannot verify a reviewer's judgment. Prefer a second reviewer and report agreement for stronger evidence. The included tests use synthetic grades only to validate arithmetic; those are not model results.
+The scorer checks the dataset hash, all unique question IDs, integer scores and written reasons. It reports the declared reviewer type, mean score out of two and fraction scored two. It cannot verify a reviewer's judgment. Model-assisted review is not human validation. Prefer an independent human reviewer and report agreement for stronger evidence. The included tests use synthetic grades only to validate arithmetic; those are not model results.
 
 ## Validation environment
 

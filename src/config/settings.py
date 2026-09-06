@@ -62,6 +62,7 @@ def get_llm(provider=None, model=None):
         return OllamaChat(
             model=model or os.getenv("OLLAMA_MODEL", "qwen2.5-coder:3b"),
             base_url=os.getenv("OLLAMA_BASE_URL", "http://localhost:11434"),
+            timeout=float(os.getenv("OLLAMA_TIMEOUT", "120")),
         )
     if provider != "gemini":
         raise ValueError("LLM provider must be ollama or gemini")
