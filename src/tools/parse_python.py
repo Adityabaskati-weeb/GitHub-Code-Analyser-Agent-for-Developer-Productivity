@@ -29,7 +29,7 @@ def parse_python(raw: str) -> str:
                 imports.append(node.module)
 
         # Functions
-        if isinstance(node, ast.FunctionDef):
+        if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)):
             functions.append(node.name)
             docstrings[node.name] = ast.get_docstring(node) or ""
 

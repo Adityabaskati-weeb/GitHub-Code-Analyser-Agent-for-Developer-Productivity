@@ -26,6 +26,8 @@ def chunk_text(
     -------
     A list of string chunks.  Returns ``[""]`` if *text* is empty.
     """
+    if chunk_size <= 0 or not 0 <= overlap < chunk_size:
+        raise ValueError("Require chunk_size > 0 and 0 <= overlap < chunk_size")
     if not text or not text.strip():
         return [""]
 

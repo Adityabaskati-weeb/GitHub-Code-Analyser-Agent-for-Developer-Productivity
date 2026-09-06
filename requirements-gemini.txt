@@ -1,0 +1,2 @@
+-r requirements.txt
+langchain-google-genai>=3.0,<5

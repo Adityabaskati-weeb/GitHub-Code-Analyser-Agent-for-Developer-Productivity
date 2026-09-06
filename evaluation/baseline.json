@@ -1,0 +1,5 @@
+{
+  "dataset_sha256": "a6c3bd67e9b3696a70c74039714c21aeb7ff90387c63af566a080b3d8bb0e34c",
+  "config": {"mode":"lexical", "top_k":8, "chunk_lines":40, "overlap":8, "context_budget_chars":18000},
+  "minimums": {"file_recall":0.88, "reciprocal_rank":0.603667, "evidence_hit":0.78}
+}

@@ -1,331 +1,159 @@
-# GitHub Code-Analyser Agent for Developer Productivity
+# GitHub Code Analyser
 
-[![CI](https://github.com/Adityabaskati-weeb/GitHub-Code-Analyser-Agent-for-Developer-Productivity/actions/workflows/ci.yml/badge.svg)](https://github.com/Adityabaskati-weeb/GitHub-Code-Analyser-Agent-for-Developer-Productivity/actions/workflows/ci.yml)
-[![Python 3.11+](https://img.shields.io/badge/python-3.11%2B-blue.svg)](https://www.python.org/downloads/)
-[![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
+Ask questions about a codebase and inspect the source evidence behind the answer. Runs against public GitHub repositories or local directories, with **local Ollama inference by default** and a model-free evidence mode.
 
-> **Point it at any public GitHub repo, ask a question, get a precise developer answer — in seconds.**
+The engineering focus is retrieval quality: preserve executable source, retain file and line references, bound the model's context, and catch retrieval regressions in CI.
 
-A LangGraph-powered CLI agent that indexes a GitHub repository, selects the most relevant files using query-aware analysis, ranks content chunks by semantic relevance, and answers developer-productivity questions about architecture, pipelines, functions, directories, and implementation details.
+## Try it without an API key
 
----
+Python 3.11 or 3.12 recommended. From this repository:
+
+```bash
+python -m venv .venv
+# Windows: .venv\Scripts\activate
+# macOS/Linux: source .venv/bin/activate
+python -m pip install -r requirements-dev.txt
+
+python run_cli.py src --local --retrieval-only --no-report -q "How are cache filenames derived from URLs?"
+python -m evaluation.run --check
+python -m pytest tests -q
+```
+
+Evidence mode prints ranked source excerpts with locations such as `cache/disk_cache.py:L1-L40`. It does **not** generate an AI answer. Neither it nor the lexical benchmark needs a model, API key, or network after dependencies are installed.
+
+## Generate answers locally
+
+Install [Ollama](https://ollama.com/download), start it, and download a model suitable for your RAM:
+
+```bash
+ollama pull qwen2.5-coder:3b
+python run_cli.py src --local --provider ollama -q "How does the disk cache handle corrupt JSON?"
+```
+
+The model name is a starting configuration, not a hardware-specific recommendation. A measured CPU run is documented below. Local inference has no per-call API fees, but uses your machine's memory, electricity, and storage; model downloads require internet access.
+
+For a public GitHub repository:
+
+```bash
+python run_cli.py https://github.com/owner/repo -q "Explain the execution flow"
+python run_cli.py https://github.com/owner/repo --branch main --refresh-cache --retrieval-only -q "Where is configuration loaded?"
+```
+
+GitHub mode needs internet access. `GITHUB_TOKEN` is optional for public repositories and can raise API limits. Private repository support is not validated; use a local checkout for private code. Without `-q`, GitHub mode opens an interactive loop. Local mode answers one question, defaulting to an architecture question.
+
+## Measured retrieval results
+
+The versioned benchmark has **50 source-annotated questions over 33 files from one frozen historical commit** of this repository. All configurations use the same questions, corpus, TF-IDF ranking, and 18,000-character context budget.
+
+| Chunk size / overlap | Top K | File Recall@K | Evidence hit rate | MRR@K |
+|---|---:|---:|---:|---:|
+| 20 / 4 lines | 5 | 86% | 54% | 0.6663 |
+| 20 / 4 lines | 8 | 88% | 60% | 0.6697 |
+| 40 / 8 lines | 5 | 86% | 68% | 0.6003 |
+| **40 / 8 lines** | **8** | **88%** | **78%** | **0.6037** |
+
+The default retrieved the labeled file for **44/50** questions and an excerpt containing the annotated answer anchor for **39/50**. Twenty-line chunks ranked the right file earlier on average, but more often missed the answer-bearing code. This is why the default uses forty-line chunks.
+
+These are **retrieval metrics, not LLM answer accuracy**. The dataset is an authored regression set, not a blind held-out test; it does not establish performance across unseen repositories. It evaluates retrieval from the full frozen corpus, not GitHub's earlier file-selection stage. The frozen source intentionally contains old implementations; reference answers describe that snapshot.
+
+Read [per-question retrieval results and timings](evaluation/results.json), [benchmark methodology](docs/EVALUATION.md), and [engineering decisions](docs/DECISIONS.md).
+
+```bash
+python -m evaluation.run --compare --output reports/comparison.json
+python -m evaluation.run --check
+```
+
+CI fails if file recall, evidence hit rate, or MRR drops below the checked-in baseline. Dataset and configuration changes require an explicit baseline review. Timing is reported but not gated because CI hardware varies.
+
+## Live local-model baseline
+
+All 50 questions were answered by **Qwen2.5-Coder 3B, Q4_K_M**, through Ollama 0.33.3 on a Ryzen 5 5600H CPU with 15.4 GiB system RAM. No hosted API was used.
+
+| Measure | Observed result |
+|---|---:|
+| Correct, complete and supported (score 2) | 19/50 (38%) |
+| Partially correct (score 1) | 20/50 |
+| Incorrect / failed answer (score 0) | 11/50 |
+| Mean rubric score | 1.16 / 2 |
+| Median / P95 generation wall time | 48.151 / 72.294 seconds |
+
+These are **model-assisted source-review judgments, not independent human validation**. This is one authored regression set, one model, and one run—not a held-out accuracy estimate. The [complete artifact](evaluation/live_answers.json) includes every raw model response, retrieved excerpt, grade and reason.
+
+All 50 answers had valid citation locations, but only 19 received full answer credit. The model never abstained, including on missing-evidence cases. This is a useful baseline with clear weaknesses, not a production-quality claim: source-ID rendering ensures appended locations come from retrieval, not that the prose is true. See [failure analysis and reproduction](docs/EVALUATION.md#published-local-run).
 
 ## Architecture
 
 ```mermaid
 flowchart TD
-    subgraph CLI["CLI — run_cli.py"]
-        A["python run_cli.py &lt;repo&gt; -q &lt;question&gt;"]
-    end
-
-    subgraph Indexing["Indexing Workflow (index_app)"]
-        B[fetch_repo_metadata_node] -->|"disk cache (.cache/)"| C[global_context_node]
-        C --> D[query_analyser_node]
-        D --> E[analyze_tree_node]
-        E -->|"smart ranking + cap"| F[fetch_and_parse_node]
-        F -->|"async concurrent + tqdm"| G[summarize_repo_node]
-        G -->|"chunk + TF-IDF rank"| H[LLM Answer]
-    end
-
-    subgraph QA["QA Workflow (qa_app)"]
-        Q[User Question] --> D2[query_analyser_node]
-        D2 --> E2[analyze_tree_node]
-        E2 --> F2[fetch_and_parse_node]
-        F2 --> G2[summarize_repo_node]
-        G2 --> R[Answer + Markdown Report]
-    end
-
-    subgraph Layers["Support Layers"]
-        S1[".cache/ — SHA-256 keyed disk cache"]
-        S2["src/retrieval/ — TF-IDF lexical ranker"]
-        S3["src/cache/ — load/save/invalidate/clear"]
-        S4["reports/ — auto-saved Markdown Q&A reports"]
-    end
-
-    A --> Indexing
-    A --> QA
-    B -.-> S1
-    F -.-> S1
-    G -.-> S2
-    H -.-> S4
+    G[Public GitHub URL] --> T[Metadata tree and disk cache]
+    T --> S[Query intent and capped file selection]
+    S --> F[Concurrent fetch: parsed metadata plus original source]
+    L[Local directory] --> R[Read eligible source files]
+    F --> C[Chunks with file and line provenance]
+    R --> C
+    C --> K[Rank and fit context budget]
+    K --> E[Evidence-only output]
+    K --> O[Local Ollama or explicitly selected Gemini]
+    O --> A[Answer and validated source locations]
+    E --> M[Markdown report and run metrics]
+    A --> M
+    B[Frozen corpus and 50 annotated questions] --> C
+    K --> V[Retrieval evaluation and CI regression gate]
 ```
 
----
+Indexing makes no model calls. Each answered question makes one model request, with a bounded retry policy. Ollama selects source IDs through a JSON schema; the application renders their actual file ranges. Missing evidence triggers abstention and malformed responses fail explicitly. Generic providers use free-form citations with location checks and visible warnings. A valid location is not proof of factual correctness or an automatic fact check.
 
-## Key Features
+## Configuration
 
-| Feature | Details |
-|---|---|
-| **Smart file selection** | Scores every file by relevance (intent + keywords + name + depth); caps at `MAX_SELECTED_FILES=20`; skips minified, binary, fonts, oversized files |
-| **Concurrent file fetching** | `asyncio.gather` + `asyncio.Semaphore` — up to 8 files fetched in parallel; deterministic output order |
-| **tqdm progress bar** | Live fetch progress on terminal; auto-suppressed in CI and piped output |
-| **Disk cache** | SHA-256 keyed cache under `.cache/`; `--refresh-cache` to bypass; covers tree, blobs, and global-context snippets |
-| **Semantic retrieval** | TF-IDF lexical ranking (stdlib, zero extra deps); optional `sentence-transformers` semantic mode |
-| **Markdown reports** | Auto-saved to `reports/` after every answer — one-shot and interactive modes |
-| **Query-aware intent** | Detects 5 intent types (pipeline, function, type, directory, architecture) and adjusts file scoring |
-| **Python AST parser** | Extracts imports, classes, functions, docstrings — never sends raw code noise to the LLM |
-| **Multi-file parsers** | Python (AST), Markdown, JSON/YAML, Jupyter notebooks |
-| **Default-branch detection** | Auto-detects `main`/`master`; override with `--branch` |
-| **Verbose debug mode** | `--verbose` enables structured `logging.DEBUG` output without touching user-facing `print()` |
-| **113 unit tests** | Zero network, zero API key; mocked HTTP; covers parsers, cache, retrieval, selection, fetch |
-| **CI tested** | Compile check + pytest + smoke test on Python 3.11 & 3.12 |
+Copy `.env.example` to `.env` if you want persistent settings. Do not commit keys.
 
----
+| Setting | Default | Purpose |
+|---|---|---|
+| `LLM_PROVIDER` / `--provider` | `ollama` | `ollama` or explicitly selected `gemini` |
+| `OLLAMA_MODEL` / `--model` | `qwen2.5-coder:3b` | Downloaded local model |
+| `OLLAMA_BASE_URL` | `http://localhost:11434` | Loopback server; remote endpoints are rejected |
+| `OLLAMA_TIMEOUT` | `120` | Seconds allowed per model request; increase for slow CPUs |
+| `GITHUB_TOKEN` | unset | Optional public GitHub access token |
+| `TOP_K` / `--top-k` | `8` | Positive number of chunks to retrieve |
+| `RETRIEVAL_MODE` / `--retrieval-mode` | `lexical` | `lexical` or optional `semantic` |
+| `MAX_SELECTED_FILES` | `20` | GitHub candidate-file cap per question |
+| `MAX_SIZE_KB` | `200` | Skip oversized files |
+| `MAX_CONCURRENT_FETCHES` | `8` | Concurrent GitHub blob downloads |
+| `CACHE_DIR` | `.cache` | GitHub tree and blob cache |
 
-## Project Structure
+Other flags: `--local`, `--retrieval-only`, `--branch`, `--refresh-cache`, `--no-report`, `--verbose`, `--smoke-test`.
 
-```text
-run_cli.py                          # CLI entry point
-langgraph_app.py                    # LangGraph workflow definitions (index_app, qa_app)
-state_schema.py                     # Shared TypedDict graph state
-src/
-  config/settings.py                # All constants and environment settings
-  github_repo_parser.py             # GitHub tree parser (with disk cache)
-  cache/
-    disk_cache.py                   # SHA-256 keyed filesystem cache (load/save/invalidate/clear)
-  retrieval/
-    chunker.py                      # Word-boundary text chunker
-    ranker.py                       # TF-IDF lexical + optional semantic chunk ranker
-  report/
-    writer.py                       # Markdown Q&A report exporter
-  nodes/
-    fetch_repo_metadata_node.py     # Fetches repo tree, passes branch/refresh through state
-    global_context_node.py          # Builds high-level repo summary (cached snippet fetches)
-    query_analyser_node.py          # Detects intent, keywords, targets from user query
-    analyze_repo_node.py            # Smart file scoring, skipping, capping (MAX_SELECTED_FILES)
-    fetch_and_parse_node.py         # Async concurrent fetch + tqdm + parser routing
-    summarize_repo_node.py          # Chunk, rank, summarise with LLM
-  tools/
-    parse_python.py                 # AST-based Python parser
-    parse_json_yaml.py              # JSON/YAML pretty-printer + truncator
-    parse_markdown.py               # Markdown parser
-    parse_notebook.py               # Jupyter notebook parser
-  utils/
-    flatten_tree.py                 # Flatten nested GitHub tree dict to flat list
-    fetch_blob.py                   # Cached raw-file fetcher (used by all nodes)
-    logger.py                       # Centralised logging (silent by default, --verbose for DEBUG)
-tests/                              # 113 unit tests — no network, no API key
-  test_github_repo_parser.py        # URL parsing, default-branch detection (14 tests)
-  test_flatten_tree.py              # Tree flattening edge cases (10 tests)
-  test_parse_python.py              # AST parser + fallback (14 tests)
-  test_parse_json_yaml.py           # JSON/YAML parser (9 tests)
-  test_query_analyser_node.py       # Intent, keywords, targets (25 tests)
-  test_analyze_repo_node.py         # Smart selection, cap, skip, score (19 tests)
-  test_fetch_and_parse_node.py      # Concurrent fetch, dedup, order (7 tests)
-  test_disk_cache.py                # Cache hit/miss, JSON, invalidate, clear (14 tests)
-  test_cli_smoke.py                 # CLI smoke test (1 test)
-```
+Optional semantic retrieval requires `sentence-transformers` and the `all-MiniLM-L6-v2` model. It fails explicitly if unavailable rather than silently reporting lexical results as semantic. It is not part of the published benchmark comparison.
 
----
-
-## Setup
+Optional Gemini support:
 
 ```bash
-# 1. Clone the repo
-git clone https://github.com/Adityabaskati-weeb/GitHub-Code-Analyser-Agent-for-Developer-Productivity
-cd GitHub-Code-Analyser-Agent-for-Developer-Productivity
-
-# 2. Create a virtual environment
-python -m venv .venv
-source .venv/bin/activate        # Windows: .venv\Scripts\activate
-
-# 3. Install dependencies
-pip install -r requirements.txt
-
-# 4. Configure environment
-cp .env.example .env
-# Then edit .env and add your keys (see Environment Variables below)
+python -m pip install -r requirements-gemini.txt
+# Set GOOGLE_API_KEY (or GEMINI_API_KEY) in your environment / .env.
+python run_cli.py src --local --provider gemini -q "Explain caching"
 ```
 
----
+Gemini sends selected source excerpts to Google's API and may incur charges. Local mode never automatically falls back to a hosted provider.
 
-## Environment Variables
+## Evaluate answer quality
 
-| Variable | Required | Default | Purpose |
-|---|---|---|---|
-| `GOOGLE_API_KEY` | ✅ | — | Gemini API key — get free at [aistudio.google.com](https://aistudio.google.com/) |
-| `GEMINI_API_KEY` | Alternative | — | Alternative Gemini key variable |
-| `GITHUB_TOKEN` | Recommended | — | Raises GitHub rate limit from 60 → 5 000 req/hr |
-| `GOOGLE_MODEL` | | `gemini-2.5-flash` | Gemini model name |
-| `TOP_K` | | `8` | Chunks sent to LLM per question |
-| `RETRIEVAL_MODE` | | `lexical` | `lexical` (default) or `semantic` |
-| `MAX_SELECTED_FILES` | | `20` | Maximum files selected per query |
-| `MAX_SIZE_KB` | | `200` | Skip files larger than this |
-| `MAX_CONCURRENT_FETCHES` | | `8` | Parallel file download limit |
-| `CACHE_DIR` | | `.cache` | On-disk cache directory |
-
----
-
-## Example Commands
+After starting a local model:
 
 ```bash
-# No network, no API key — just checks all parsers work
-python run_cli.py --smoke-test
-
-# Interactive Q&A loop (multi-turn, saves a report after each answer)
-python run_cli.py https://github.com/owner/repo
-
-# One-shot question
-python run_cli.py https://github.com/owner/repo \
-    -q "Explain the architecture"
-
-# Analyse a specific branch
-python run_cli.py https://github.com/owner/repo \
-    --branch develop -q "What changed in the pipeline?"
-
-# Force-refresh the disk cache
-python run_cli.py https://github.com/owner/repo \
-    --refresh-cache -q "Show the pipeline flow"
-
-# Top-5 chunks, semantic ranking, suppress report
-python run_cli.py https://github.com/owner/repo \
-    -q "Where is predict() called?" \
-    --top-k 5 --retrieval-mode semantic --no-report
-
-# Debug mode — shows all logging output
-python run_cli.py https://github.com/owner/repo \
-    -q "Explain the data flow" --verbose
+python -m evaluation.answers --model qwen2.5-coder:3b --output reports/answer-review.json
+# Declare reviewer_type, then fill each score (0, 1, or 2) and reviewer_reason.
+python -m evaluation.answers --score reports/answer-review.json
 ```
 
----
+Unreviewed or partial results cannot be reported as accuracy by the scorer. See the [grading rubric](docs/EVALUATION.md#answer-grading).
 
-## CLI Reference
+## Limitations and next experiments
 
-```
-python run_cli.py <repo_url> [options]
+- File selection is heuristic and can miss relevant files in large GitHub repositories. The local path ranks all eligible files, up to a 2,000-file limit.
+- GitHub caches are branch-based snapshots. Use `--refresh-cache` when the branch changes; commit-pinned acquisition is future work.
+- Local reading skips symlinks, dependency/build directories, hidden directories other than `.github`, `.env*`, unsupported extensions, and oversized files. It is not a secret scanner.
+- Source chunking preserves lines but may split functions. Lines over 1,000 characters are truncated. The context budget is characters, not an exact tokenizer count.
+- No hybrid search, reranking, PR review, code execution, autonomous fixes, or security-audit capability is claimed.
+- Further evaluation should add independently annotated repositories, hard negatives, and blind answer grading before claiming general accuracy or productivity gains.
 
-Positional:
-  repo_url                 GitHub repo URL: https://github.com/owner/repo
-
-Options:
-  -q, --question TEXT      One-shot question (saves Markdown report)
-  --branch BRANCH          Git branch to analyse (default: auto-detect)
-  --refresh-cache          Bypass disk cache and re-fetch all data
-  --top-k N                Chunks sent to LLM per question (default: 8)
-  --retrieval-mode MODE    lexical (default) | semantic
-  --no-report              Suppress automatic Markdown report export
-  --verbose                Enable DEBUG-level logging output
-  --smoke-test             Local check — no network or API key needed
-  --help                   Show help and exit
-```
-
----
-
-## Sample Output
-
-```
-Selected 12/104 files (cap=20, skipped 48 asset/oversized).
-Fetching files: 100%|████████████████| 12/12 [00:03<00:00,  3.7 file/s]
-Fetched & parsed 12 files (0 from cache).
-[retrieval] 64 total chunks -> top 8 selected (mode=lexical)
-
-Agent:
-
-This project is a Flask web application boilerplate...
-[full Gemini answer here]
-
-Report saved -> reports\report_20260728T133006Z.md
-```
-
-**Second run on the same repo (cache hit):**
-```
-[cache] Loaded repo tree for owner/repo@main from disk.
-Fetching files: 100%|████████████████| 12/12 [00:00<00:00, 247.3 file/s]
-Fetched & parsed 0 files (12 from cache).
-```
-
----
-
-## Run Tests
-
-```bash
-# Full test suite (no network, no API key)
-python -m pytest tests/ -v --tb=short
-
-# Specific module
-python -m pytest tests/test_analyze_repo_node.py -v
-
-# Syntax check everything
-python -m compileall -q .
-
-# Smoke test (zero dependencies beyond stdlib)
-python run_cli.py --smoke-test
-```
-
----
-
-## How File Selection Works
-
-The agent avoids the naive approach of "fetch every file". Instead it:
-
-1. **Hard-skips** minified files (`*.min.js`, `*.min.css`, `*.map`), binary assets (fonts, images), and files > `MAX_SIZE_KB`
-2. **Scores** every remaining file with a weighted rubric:
-
-| Signal | Points |
-|---|---|
-| Name matches important keywords (`readme`, `main`, `config`, …) | +40 |
-| Query keyword appears in file path | +20 per hit |
-| Intent-specific match (function name, target directory, …) | +25–35 |
-| Has a parseable extension (`.py`, `.md`, `.json`, …) | +5 |
-| Depth penalty (each `/` in path) | −2 |
-
-3. **Caps** the ranked list at `MAX_SELECTED_FILES=20` — always picks the most relevant files first
-
----
-
-## Troubleshooting
-
-### `Error: No Gemini API key found`
-Add `GOOGLE_API_KEY=<your_key>` to your `.env` file.
-Get a free key at [aistudio.google.com](https://aistudio.google.com/).
-
-### `GitHub returned 403 Forbidden`
-Add `GITHUB_TOKEN=<token>` to `.env`.
-Generate at [github.com/settings/tokens](https://github.com/settings/tokens) — no special scopes needed for public repos.
-This raises your rate limit from 60 to 5 000 requests/hr.
-
-### `Repository '...' not found` (404)
-The URL must be a public repo in the format `https://github.com/owner/repo`.
-Private repos require a `GITHUB_TOKEN` with `repo` scope.
-
-### Large repos take too long (first run)
-This is expected on the first run — files are fetched and cached.
-**Second and subsequent runs on the same repo are near-instant** (cache hit).
-Use `--top-k 5` to send fewer chunks to the LLM and reduce latency.
-
-### `Gemini quota exceeded`
-Switch to a lighter model: `GOOGLE_MODEL=gemini-1.5-flash` in `.env`.
-Free tier quotas reset daily.
-
-### `ModuleNotFoundError: sentence_transformers`
-Semantic retrieval requires an optional dependency:
-```bash
-pip install sentence-transformers
-```
-Or keep the default lexical mode: `--retrieval-mode lexical`
-
-### Tests fail with import errors
-```bash
-pip install -r requirements-dev.txt
-```
-
-### Debug unexpected behaviour
-```bash
-python run_cli.py https://github.com/owner/repo -q "your question" --verbose
-```
-This enables structured `DEBUG` logging across all nodes.
-
----
-
-## Development
-
-```bash
-# Install dev dependencies (includes pytest)
-pip install -r requirements-dev.txt
-
-# Run all tests
-python -m pytest tests/ -v
-
-# Check syntax across every Python file
-python -m compileall -q .
-```
+For a short walkthrough and interview preparation, see [DEMO.md](docs/DEMO.md).

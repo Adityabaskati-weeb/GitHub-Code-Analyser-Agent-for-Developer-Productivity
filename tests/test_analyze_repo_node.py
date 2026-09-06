@@ -125,7 +125,7 @@ def _make_tree(n: int, ext: str = ".py") -> dict:
 class TestAnalyzeTreeNode:
 
     def _run(self, state: dict) -> dict:
-        return asyncio.get_event_loop().run_until_complete(analyze_tree_node(state))
+        return asyncio.run(analyze_tree_node(state))
 
     def _base_state(self, tree: dict) -> dict:
         from langchain_core.messages import HumanMessage

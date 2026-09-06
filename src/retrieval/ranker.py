@@ -10,8 +10,8 @@ Two modes
   ``collections``.
 
 * **semantic** (optional):
-  Uses ``sentence-transformers`` if it is installed; gracefully falls
-  back to lexical mode if the import fails or the model cannot load.
+  Uses ``sentence-transformers``. Raises an actionable error if unavailable;
+  never labels lexical fallback results as semantic results.
 
 The active mode can be forced via ``RETRIEVAL_MODE`` in the environment
 ("lexical" | "semantic").
@@ -21,6 +21,7 @@ from __future__ import annotations
 
 import math
 import re
+from functools import lru_cache
 from collections import Counter
 from typing import TYPE_CHECKING
 
@@ -68,34 +69,48 @@ def _lexical_rank(query: str, chunks: list[str], top_k: int) -> list[str]:
     if not chunks:
         return []
     tokenised_chunks = [_tokenize(c) for c in chunks]
-    corpus = tokenised_chunks
-    q_tokens = _tokenize(query)
-    q_vec = _tfidf_vector(q_tokens, corpus)
+    frequencies = Counter(term for doc in tokenised_chunks for term in set(doc))
+    n = len(chunks)
+
+    def vector(tokens):
+        return {term: weight * (math.log((n + 1) / (frequencies[term] + 1)) + 1)
+                for term, weight in _tf(tokens).items()}
+
+    q_vec = vector(_tokenize(query))
     scored = [
-        (_cosine(q_vec, _tfidf_vector(tok, corpus)), chunk)
+        (_cosine(q_vec, vector(tok)), chunk)
         for tok, chunk in zip(tokenised_chunks, chunks)
     ]
     scored.sort(key=lambda x: x[0], reverse=True)
-    return [chunk for _, chunk in scored[:top_k]]
+    return [chunk for score, chunk in scored[:top_k] if score > 0]
 
 
 # ---------------------------------------------------------------------------
 # Internal helpers – semantic (optional)
 # ---------------------------------------------------------------------------
 
-def _semantic_rank(query: str, chunks: list[str], top_k: int) -> list[str]:
-    """Attempt semantic ranking; fall back to lexical on any error."""
-    try:
-        from sentence_transformers import SentenceTransformer, util  # type: ignore
+@lru_cache(maxsize=1)
+def _semantic_model():
+    from sentence_transformers import SentenceTransformer
+    return SentenceTransformer("all-MiniLM-L6-v2")
 
-        model = SentenceTransformer("all-MiniLM-L6-v2")
+
+def _semantic_rank(query: str, chunks: list[str], top_k: int) -> list[str]:
+    """Semantic ranking with explicit failure if the backend is unavailable."""
+    try:
+        from sentence_transformers import util  # type: ignore
+
+        model = _semantic_model()
         q_emb = model.encode(query, convert_to_tensor=True)
         c_embs = model.encode(chunks, convert_to_tensor=True)
         scores = util.cos_sim(q_emb, c_embs)[0].tolist()
         ranked = sorted(zip(scores, chunks), key=lambda x: x[0], reverse=True)
         return [chunk for _, chunk in ranked[:top_k]]
-    except Exception:  # noqa: BLE001 – graceful degradation
-        return _lexical_rank(query, chunks, top_k)
+    except Exception as exc:
+        raise RuntimeError(
+            "Semantic retrieval unavailable. Install sentence-transformers and "
+            "download all-MiniLM-L6-v2, or explicitly choose lexical retrieval."
+        ) from exc
 
 
 # ---------------------------------------------------------------------------
@@ -123,12 +138,13 @@ def rank_chunks(
     -------
     Ordered list of the most relevant chunks (best first).
     """
+    if top_k <= 0:
+        raise ValueError("top_k must be positive")
+    effective_mode = (mode or RETRIEVAL_MODE or "lexical").lower()
+    if effective_mode not in {"lexical", "semantic"}:
+        raise ValueError("Retrieval mode must be lexical or semantic")
     if not chunks:
         return []
-    if len(chunks) <= top_k:
-        return chunks  # nothing to rank
-
-    effective_mode = (mode or RETRIEVAL_MODE or "lexical").lower()
 
     if effective_mode == "semantic":
         return _semantic_rank(query, chunks, top_k)

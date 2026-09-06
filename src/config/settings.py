@@ -55,8 +55,21 @@ IMPORTANT_EXT = [".py", ".ipynb", ".md", ".json", ".yaml", ".toml", ".txt"]
 IMPORTANT_NAMES = ["readme", "setup", "main", "__init__", "app", "model", "config", "run"]
 
 
-def get_llm():
-    from langchain_google_genai import ChatGoogleGenerativeAI
+def get_llm(provider=None, model=None):
+    provider = (provider or os.getenv("LLM_PROVIDER", "ollama")).lower()
+    if provider == "ollama":
+        from src.llm.ollama import OllamaChat
+        return OllamaChat(
+            model=model or os.getenv("OLLAMA_MODEL", "qwen2.5-coder:3b"),
+            base_url=os.getenv("OLLAMA_BASE_URL", "http://localhost:11434"),
+            timeout=float(os.getenv("OLLAMA_TIMEOUT", "120")),
+        )
+    if provider != "gemini":
+        raise ValueError("LLM provider must be ollama or gemini")
+    try:
+        from langchain_google_genai import ChatGoogleGenerativeAI
+    except ImportError as exc:
+        raise RuntimeError("Install requirements-gemini.txt to use Gemini.") from exc
 
     if not os.getenv("GOOGLE_API_KEY") and not os.getenv("GEMINI_API_KEY"):
         raise RuntimeError(
@@ -64,6 +77,9 @@ def get_llm():
         )
 
     return ChatGoogleGenerativeAI(
-        model=GOOGLE_MODEL,
+        model=model or GOOGLE_MODEL,
+        google_api_key=os.getenv("GOOGLE_API_KEY") or os.getenv("GEMINI_API_KEY"),
         temperature=0.2,
+        timeout=120,
+        max_retries=2,
     )
