@@ -1,0 +1,32 @@
+{
+  "source_report": "evaluation/code-sourceid-pilot.json",
+  "reviewer_type": "model-assisted",
+  "review_scope": "Fixed 12-question development pilot; Codex source/reference review, not independent human validation.",
+  "retrieval_mode": "code",
+  "answer_protocol": "source_ids_v1",
+  "summary": {
+    "questions": 12,
+    "score_total_out_of_24": 14,
+    "mean_score_out_of_2": 1.166667,
+    "fully_supported": 4,
+    "partially_correct": 6,
+    "incorrect": 2,
+    "abstentions": 0,
+    "failed_requests": 0,
+    "acceptance_ready": false
+  },
+  "grades": [
+    {"id": "q03", "score": 2, "reviewer_reason": "Correct invalidation and deletion behavior."},
+    {"id": "q07", "score": 2, "reviewer_reason": "Correctly states that a failed raw-file download returns an empty string."},
+    {"id": "q11", "score": 1, "reviewer_reason": "Correct rate-limit and token guidance, but omits PermissionError handling and adds unsupported retry advice."},
+    {"id": "q15", "score": 2, "reviewer_reason": "Correctly explains AST parsing and function docstring extraction."},
+    {"id": "q19", "score": 1, "reviewer_reason": "Correct values, but omits the requested word units."},
+    {"id": "q23", "score": 2, "reviewer_reason": "Correct smoothed IDF formula."},
+    {"id": "q28", "score": 0, "reviewer_reason": "Incorrectly places asyncio.to_thread in the synchronous downloader; the async wrapper _fetch_one performs the offload."},
+    {"id": "q32", "score": 1, "reviewer_reason": "Correct 5000-character limit, but omits that the first characters are retained."},
+    {"id": "q36", "score": 1, "reviewer_reason": "Correct cap/sorting idea, but does not state the MAX_SELECTED_FILES slice explicitly and invents rank_chunks."},
+    {"id": "q40", "score": 0, "reviewer_reason": "Incorrectly names Agent_State instead of the add_messages reducer."},
+    {"id": "q44", "score": 1, "reviewer_reason": "Correct reports directory, but adds an unsupported claim that it is under writer.py."},
+    {"id": "q48", "score": 1, "reviewer_reason": "Correctly identifies exit and quit, but omits case-insensitive lowercasing."}
+  ]
+}

@@ -43,10 +43,15 @@ jobs:
       - name: Retrieval regression gate (no model or API key)
         run: python -m evaluation.run --check --output reports/evaluation.json
 
+      - name: Identifier-aware AST retrieval regression gate
+        run: python -m evaluation.run --mode code --check --output reports/code-evaluation.json
+
       - name: Upload per-question evaluation results
         if: always()
         uses: actions/upload-artifact@v4
         with:
           name: retrieval-evaluation-py${{ matrix.python-version }}
-          path: reports/evaluation.json
+          path: |
+            reports/evaluation.json
+            reports/code-evaluation.json
           if-no-files-found: warn

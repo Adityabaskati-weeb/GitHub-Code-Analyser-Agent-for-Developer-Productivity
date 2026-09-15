@@ -22,7 +22,9 @@ def test_resume_skips_completed_questions(tmp_path, monkeypatch):
     output = tmp_path / "answers.json"
     output.write_text(json.dumps({"model":"test-model", "dataset_sha256":module.fingerprint(),
         "reviewer_type":"unassigned", "answer_protocol":"source_ids_v1", "rows":[{"id":"q01", "answer":"previous"}]}))
-    asyncio.run(module.generate("test-model", output, resume=True))
+    with pytest.warns(RuntimeWarning, match="legacy report"):
+        asyncio.run(module.generate("test-model", output, resume=True,
+                                    allow_legacy_resume=True))
     generate.assert_awaited_once()
     rows = json.loads(output.read_text())["rows"]
     assert [r["id"] for r in rows] == ["q01", "q02"]
@@ -49,6 +51,7 @@ def test_resume_rejects_different_model(tmp_path, monkeypatch):
 
 @pytest.mark.parametrize("updates,match", [
     ({"answer_protocol":"freeform"}, "different answer protocol"),
+    ({"retrieval_mode":"code"}, "different retrieval mode"),
     ({"rows":[{"id":"q01"}, {"id":"q01"}]}, "Invalid question IDs"),
     ({"rows":[{"id":"q99"}]}, "Invalid question IDs"),
 ])
@@ -56,7 +59,11 @@ def test_resume_rejects_incompatible_checkpoint(tmp_path, monkeypatch, updates, 
     generate = setup_run(monkeypatch)
     output = tmp_path / "answers.json"
     report = {"model":"test-model", "dataset_sha256":module.fingerprint(),
-              "answer_protocol":"source_ids_v1", "rows":[]}
+              "answer_protocol":"source_ids_v1", "retrieval_mode":"lexical",
+              "run_config":module.build_run_config(
+                  SimpleNamespace(model="test-model"), "lexical", "source_ids_v1",
+                  {"model_digest":"test-digest", "runtime_version":"test-runtime"}, ["q01", "q02"]),
+              "rows":[]}
     report.update(updates)
     output.write_text(json.dumps(report))
     with pytest.raises(ValueError, match=match):

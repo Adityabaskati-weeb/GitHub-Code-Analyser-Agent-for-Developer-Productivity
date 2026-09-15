@@ -1,0 +1,272 @@
+{
+  "reviewer_type": "model-assisted",
+  "reviewer": "Astra technical-lead source review",
+  "source_report": "evaluation/code-compact-sourceid-full.json",
+  "scope": "Authored development regression set; not independent human or held-out evaluation.",
+  "summary": {
+    "questions": 50,
+    "fully_supported": 28,
+    "partial": 14,
+    "zero_score": 8,
+    "mean_score_out_of_2": 1.4,
+    "incorrect_delivered_answers": 7,
+    "false_abstentions": 1,
+    "answer_coverage": 0.98,
+    "authored_gate_passed": false,
+    "failed_gates": [
+      "Fully supported answers 28/50 below required30/50"
+    ]
+  },
+  "rows": [
+    {
+      "id": "q01",
+      "score": 1,
+      "reviewer_reason": "Correct SHA-256 mechanism, but selected excerpts omit _path_for and do not establish the additional suffix-appending claim."
+    },
+    {
+      "id": "q02",
+      "score": 2,
+      "reviewer_reason": "Correct JSONDecodeError-related None return, supported by load_json's handler."
+    },
+    {
+      "id": "q03",
+      "score": 2,
+      "reviewer_reason": "Correct invalidate entry point and deletion of the corresponding file if present."
+    },
+    {
+      "id": "q04",
+      "score": 2,
+      "reviewer_reason": "Correct clear entry point and recursive shutil.rmtree cache-directory removal."
+    },
+    {
+      "id": "q05",
+      "score": 2,
+      "reviewer_reason": "Correct UTF-8 encoding, directly supported by cited save."
+    },
+    {
+      "id": "q06",
+      "score": 2,
+      "reviewer_reason": "Correct 30-second requests timeout."
+    },
+    {
+      "id": "q07",
+      "score": 1,
+      "reviewer_reason": "Correct empty-string return, but cited _fetch_one only checks falsy content and does not establish downloader's return value."
+    },
+    {
+      "id": "q08",
+      "score": 2,
+      "reviewer_reason": "Correct refresh=True cache bypass and redownload, supported by the conditional lookup."
+    },
+    {
+      "id": "q09",
+      "score": 2,
+      "reviewer_reason": "Correct attachment through session headers in GitRepoParser.__init__, supported by the Authorization update."
+    },
+    {
+      "id": "q10",
+      "score": 1,
+      "reviewer_reason": "Correct delegation to _get_default_branch, but omits repository metadata request, default_branch lookup and main fallback."
+    },
+    {
+      "id": "q11",
+      "score": 1,
+      "reviewer_reason": "Correct rate-limit category and GITHUB_TOKEN advice, but omits the raised PermissionError."
+    },
+    {
+      "id": "q12",
+      "score": 2,
+      "reviewer_reason": "Correct yes/no answer, supported by the branch-specific cache key."
+    },
+    {
+      "id": "q13",
+      "score": 2,
+      "reviewer_reason": "Correct recursive directory traversal, supported by _fetch_recursive."
+    },
+    {
+      "id": "q14",
+      "score": 1,
+      "reviewer_reason": "Identifies _get_repo_name but omits the requested strip/rstrip/removesuffix mechanism."
+    },
+    {
+      "id": "q15",
+      "score": 2,
+      "reviewer_reason": "Correct AST parsing and ast.get_docstring extraction."
+    },
+    {
+      "id": "q16",
+      "score": 2,
+      "reviewer_reason": "Correct cleaned-raw fallback after Python parsing fails."
+    },
+    {
+      "id": "q17",
+      "score": 0,
+      "reviewer_reason": "Incorrect No: cited cleaner skips lines whose stripped text begins with #."
+    },
+    {
+      "id": "q18",
+      "score": 2,
+      "reviewer_reason": "Correct ClassDef recognition and appending node.name to classes."
+    },
+    {
+      "id": "q19",
+      "score": 1,
+      "reviewer_reason": "Correct 400/50 values, but omits that both count words."
+    },
+    {
+      "id": "q20",
+      "score": 0,
+      "reviewer_reason": "Wrong return type/value: empty string instead of a list containing an empty string; cited downloader is unrelated."
+    },
+    {
+      "id": "q21",
+      "score": 1,
+      "reviewer_reason": "Correct advance formula, but adds false unconditional guarantees about chunk length and minimum overlap."
+    },
+    {
+      "id": "q22",
+      "score": 1,
+      "reviewer_reason": "Identifies the lexical-ranking caller but omits _tokenize's lowercasing and regex extraction."
+    },
+    {
+      "id": "q23",
+      "score": 2,
+      "reviewer_reason": "Correct complete smoothed IDF formula, directly cited."
+    },
+    {
+      "id": "q24",
+      "score": 1,
+      "reviewer_reason": "Correct zero value, but cited _lexical_rank lacks the _cosine no-shared-terms branch."
+    },
+    {
+      "id": "q25",
+      "score": 1,
+      "reviewer_reason": "Names SentenceTransformer but omits requested all-MiniLM-L6-v2 model identifier."
+    },
+    {
+      "id": "q26",
+      "score": 2,
+      "reviewer_reason": "Correct import/load-error fallback to lexical ranking for the frozen snapshot."
+    },
+    {
+      "id": "q27",
+      "score": 0,
+      "reviewer_reason": "False abstention: selected fetch_and_parse_node source explicitly creates asyncio.Semaphore(MAX_CONCURRENT_FETCHES)."
+    },
+    {
+      "id": "q28",
+      "score": 1,
+      "reviewer_reason": "Correct to_thread offloading explanation, but cited synchronous fetch_blob_content lacks the offloading mechanism."
+    },
+    {
+      "id": "q29",
+      "score": 1,
+      "reviewer_reason": "Correct skip behavior, but omits comparing selected paths against the already_parsed set."
+    },
+    {
+      "id": "q30",
+      "score": 2,
+      "reviewer_reason": "Correct asyncio.gather(return_exceptions=True) collection and per-task exception results."
+    },
+    {
+      "id": "q31",
+      "score": 2,
+      "reviewer_reason": "Correct TQDM_DISABLE=1 environment setting, supported by cited module documentation."
+    },
+    {
+      "id": "q32",
+      "score": 0,
+      "reviewer_reason": "Wrong amount: 10 instead of first 5000 characters; selected context lacks the relevant _parse branch."
+    },
+    {
+      "id": "q33",
+      "score": 2,
+      "reviewer_reason": "Correct MAX_SIZE_KB comparison, skip and logging behavior."
+    },
+    {
+      "id": "q34",
+      "score": 0,
+      "reviewer_reason": "Wrong contribution: 1 instead of 20 points per keyword match."
+    },
+    {
+      "id": "q35",
+      "score": 2,
+      "reviewer_reason": "Correct two-point penalty per nesting level, supported by slash count."
+    },
+    {
+      "id": "q36",
+      "score": 1,
+      "reviewer_reason": "Correct MAX_SELECTED_FILES cap and relevant function, but invents default 8 (actual default20) and omits sorting/slicing."
+    },
+    {
+      "id": "q37",
+      "score": 1,
+      "reviewer_reason": "Correct suffix-pattern comparison, but omits lowercasing before matching."
+    },
+    {
+      "id": "q38",
+      "score": 2,
+      "reviewer_reason": "Correct separate StateGraph objects with nodes/edges and compile calls."
+    },
+    {
+      "id": "q39",
+      "score": 0,
+      "reviewer_reason": "Wrong QA entry point: fetch_repo_metadata_node rather than query_analyzer."
+    },
+    {
+      "id": "q40",
+      "score": 2,
+      "reviewer_reason": "Correct add_messages reducer and langgraph.graph.message import."
+    },
+    {
+      "id": "q41",
+      "score": 2,
+      "reviewer_reason": "Correct default8, supported by cited CLI help."
+    },
+    {
+      "id": "q42",
+      "score": 2,
+      "reviewer_reason": "Correct configured gemini-2.5-flash identifier."
+    },
+    {
+      "id": "q43",
+      "score": 2,
+      "reviewer_reason": "Correct requested RuntimeError type, directly supported by get_llm."
+    },
+    {
+      "id": "q44",
+      "score": 2,
+      "reviewer_reason": "Correct reports directory, supported by writer documentation."
+    },
+    {
+      "id": "q45",
+      "score": 2,
+      "reviewer_reason": "Correct UTC timezone, supported by datetime.now(tz=timezone.utc)."
+    },
+    {
+      "id": "q46",
+      "score": 0,
+      "reviewer_reason": "Nonresponsive Yes does not give the maximum five key files."
+    },
+    {
+      "id": "q47",
+      "score": 0,
+      "reviewer_reason": "Wrong count: 5 instead of first10 lines, confusing file count with line count."
+    },
+    {
+      "id": "q48",
+      "score": 2,
+      "reviewer_reason": "Correct case-insensitive exit/quit recognition and loop termination."
+    },
+    {
+      "id": "q49",
+      "score": 2,
+      "reviewer_reason": "Correct Python3.11/3.12 workflow matrix."
+    },
+    {
+      "id": "q50",
+      "score": 2,
+      "reviewer_reason": "Correct python run_cli.py --smoke-test invocation, supported by the workflow."
+    }
+  ]
+}

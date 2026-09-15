@@ -1,0 +1,5 @@
+{
+  "dataset_sha256": "a6c3bd67e9b3696a70c74039714c21aeb7ff90387c63af566a080b3d8bb0e34c",
+  "config": {"mode":"code", "top_k":8, "chunking":"python_ast_v1", "max_function_lines":100, "fallback_chunk_lines":40, "overlap":8, "ranking":"identifier_bm25_v1", "context_budget_chars":18000},
+  "minimums": {"file_recall":1.0, "reciprocal_rank":0.857333, "evidence_hit":0.94}
+}

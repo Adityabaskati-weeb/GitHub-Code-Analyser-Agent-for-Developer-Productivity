@@ -326,9 +326,9 @@ Examples:
     )
     parser.add_argument(
         "--retrieval-mode",
-        choices=["lexical", "semantic"],
+        choices=["lexical", "semantic", "code", "code_compact"],
         default=None,
-        help="Chunk ranking strategy (default: lexical).",
+        help="Retrieval strategy: lexical, semantic, code, or code_compact (K=8 plus a 4-excerpt/8000-char context selector).",
     )
     parser.add_argument(
         "--no-report",
@@ -351,6 +351,8 @@ Examples:
     parser.add_argument("--local", action="store_true", help="Treat repo_url as a local directory.")
     parser.add_argument("--retrieval-only", action="store_true",
                         help="Show source excerpts without calling any model.")
+    parser.add_argument("--answer-protocol", choices=["source_ids_v1", "quoted_v2"],
+                        help="Local structured-answer protocol (code mode defaults to experimental quoted_v2).")
     return parser.parse_args()
 
 
@@ -392,11 +394,14 @@ async def main() -> int:
             files = read_local_repo(args.repo_url)
             llm = None if args.retrieval_only else get_llm(args.provider, args.model)
             question = args.question or "Explain the architecture"
-            state = await summarize_repo_node({
+            local_state = {
                 "parsed_files": files, "messages": [HumanMessage(content=question)],
                 "llm": llm, "top_k": args.top_k or TOP_K,
                 "retrieval_mode": args.retrieval_mode or os.getenv("RETRIEVAL_MODE", "lexical"),
-            })
+            }
+            if args.answer_protocol:
+                local_state["answer_protocol"] = args.answer_protocol
+            state = await summarize_repo_node(local_state)
             print(state["summary"])
             print(f"\nMetrics: {state['metrics']}")
             _try_save_report(args.repo_url, question, state, None, args.no_report)
@@ -426,6 +431,8 @@ async def main() -> int:
             retrieval_only=args.retrieval_only,
         )
         repo_state["retrieval_mode"] = args.retrieval_mode or os.getenv("RETRIEVAL_MODE", "lexical")
+        if args.answer_protocol:
+            repo_state["answer_protocol"] = args.answer_protocol
         print("Repository indexed. You can now ask questions about the codebase.")
 
         if args.question:

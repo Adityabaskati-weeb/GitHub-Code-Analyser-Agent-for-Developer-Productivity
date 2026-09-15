@@ -68,6 +68,14 @@ def test_transient_server_error_retries_once():
     assert len(calls) == 2
 
 
+def test_failed_request_records_attempt_count_and_elapsed_time():
+    with pytest.raises(RuntimeError) as raised:
+        invoke(lambda _: httpx.Response(503), retries=1)
+    assert raised.value.metadata["inference_attempts"] == 2
+    assert raised.value.metadata["retry_count"] == 1
+    assert raised.value.metadata["request_elapsed_ms"] >= 0
+
+
 def test_client_error_not_retried():
     calls = []
     def handler(request):

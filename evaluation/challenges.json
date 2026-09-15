@@ -1,0 +1,18 @@
+{
+  "scope": "Small synthetic smoke set authored after the retrieval implementation, before model execution. Not an independent cross-repository benchmark.",
+  "files": [
+    {"path":"lease.py", "raw":"LEASE_SECONDS = 45\nMAX_WORKERS = 3\n\ndef renew_lease(clock):\n    return clock() + LEASE_SECONDS\n"},
+    {"path":"preferences.py", "raw":"import json\n\ndef decode_preferences(text):\n    try:\n        return json.loads(text)\n    except json.JSONDecodeError:\n        return {}\n"},
+    {"path":"prices.py", "raw":"def sum_prices(values):\n    if not values:\n        return []\n    return [sum(values)]\n\ndef require_currency(currency):\n    if currency not in {'INR', 'EUR'}:\n        raise ValueError('Unsupported currency')\n    return currency\n"}
+  ],
+  "questions": [
+    {"id":"c01", "question":"How many seconds does renew_lease add to the clock?", "answer":"45 seconds, from LEASE_SECONDS.", "answerable":true},
+    {"id":"c02", "question":"What does decode_preferences return for invalid JSON?", "answer":"An empty dictionary after catching json.JSONDecodeError.", "answerable":true},
+    {"id":"c03", "question":"What does sum_prices return when its input is empty?", "answer":"An empty list, not zero and not an empty string.", "answerable":true},
+    {"id":"c04", "question":"What exception does require_currency raise for USD?", "answer":"ValueError, because only INR and EUR are accepted.", "answerable":true},
+    {"id":"c05", "question":"Which encryption algorithm protects the stored preferences?", "answer":"Not established by the supplied source.", "answerable":false},
+    {"id":"c06", "question":"What is the production server hostname for lease renewal?", "answer":"Not established by the supplied source.", "answerable":false},
+    {"id":"c07", "question":"Which payment provider processes the prices?", "answer":"Not established by the supplied source.", "answerable":false},
+    {"id":"c08", "question":"Which database table stores currency exchange rates?", "answer":"Not established by the supplied source.", "answerable":false}
+  ]
+}
