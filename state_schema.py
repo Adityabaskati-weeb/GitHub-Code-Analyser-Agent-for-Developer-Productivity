@@ -27,6 +27,7 @@ class Agent_State(TypedDict):
     llm: Any
     top_k: int
     retrieval_mode: str
+    answer_protocol: str
     sources: List[Dict[str, Any]]
     metrics: Dict[str, Any]
     model_output: str

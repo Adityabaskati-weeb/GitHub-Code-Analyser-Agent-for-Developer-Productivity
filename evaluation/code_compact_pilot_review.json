@@ -1,0 +1,32 @@
+{
+  "source_report": "reports/code-compact-sourceid-pilot.json",
+  "reviewer_type": "model-assisted",
+  "review_scope": "Fixed 12-question development pilot; Codex source/reference review, not independent human validation.",
+  "retrieval_mode": "code_compact",
+  "answer_protocol": "source_ids_v1",
+  "summary": {
+    "questions": 12,
+    "score_total_out_of_24": 16,
+    "mean_score_out_of_2": 1.333333,
+    "fully_supported": 5,
+    "partially_correct": 6,
+    "incorrect": 1,
+    "abstentions": 0,
+    "failed_requests": 0,
+    "acceptance_ready": false
+  },
+  "grades": [
+    {"id": "q03", "score": 2, "reviewer_reason": "Correct invalidation and missing-file behavior."},
+    {"id": "q07", "score": 1, "reviewer_reason": "Correct return value, but the cited excerpt is an unrelated notebook parser."},
+    {"id": "q11", "score": 1, "reviewer_reason": "Omits PermissionError handling and adds unsupported retry advice."},
+    {"id": "q15", "score": 2, "reviewer_reason": "Correctly identifies ast.get_docstring as the docstring extraction mechanism."},
+    {"id": "q19", "score": 1, "reviewer_reason": "Correct numeric settings, but omits the requested word units."},
+    {"id": "q23", "score": 1, "reviewer_reason": "Identifies _idf, but omits the requested mathematical formula."},
+    {"id": "q28", "score": 1, "reviewer_reason": "Correct offloading explanation, but the cited downloader excerpt does not establish asyncio.to_thread."},
+    {"id": "q32", "score": 0, "reviewer_reason": "Returns 10 instead of the first 5,000 characters."},
+    {"id": "q36", "score": 1, "reviewer_reason": "Correct cap, but omits sorting/slicing and misnames the implementation function."},
+    {"id": "q40", "score": 2, "reviewer_reason": "Correct reducer and import module."},
+    {"id": "q44", "score": 2, "reviewer_reason": "Correct reports directory with supporting citations."},
+    {"id": "q48", "score": 2, "reviewer_reason": "Correct case-insensitive exit/quit handling and loop termination."}
+  ]
+}

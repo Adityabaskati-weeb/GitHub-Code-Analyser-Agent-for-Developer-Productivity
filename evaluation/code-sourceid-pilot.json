@@ -1,0 +1,1370 @@
+{
+  "model": "qwen2.5-coder:3b",
+  "dataset_sha256": "a6c3bd67e9b3696a70c74039714c21aeb7ff90387c63af566a080b3d8bb0e34c",
+  "reviewer_type": "unassigned",
+  "answer_protocol": "source_ids_v1",
+  "retrieval_mode": "code",
+  "rubric": "0 incorrect/unsupported, 1 partially correct, 2 correct and supported; grade all 50.",
+  "source_revision": "24d5b624e881cc2ca66a3fd2664be1b2d2d8f5c8",
+  "question_ids": [
+    "q03",
+    "q07",
+    "q11",
+    "q15",
+    "q19",
+    "q23",
+    "q28",
+    "q32",
+    "q36",
+    "q40",
+    "q44",
+    "q48"
+  ],
+  "run_config": {
+    "schema_version": 1,
+    "model": "qwen2.5-coder:3b",
+    "model_digest": "f72c60cabf6237b07f6e632b2c48d533cef25eda2efbd34bed21c5e9c01e6225",
+    "runtime_version": "0.33.3",
+    "identity_verified": true,
+    "retrieval_mode": "code",
+    "answer_protocol": "source_ids_v1",
+    "question_ids": [
+      "q03",
+      "q07",
+      "q11",
+      "q15",
+      "q19",
+      "q23",
+      "q28",
+      "q32",
+      "q36",
+      "q40",
+      "q44",
+      "q48"
+    ],
+    "top_k": 8,
+    "context_budget_chars": 18000,
+    "prompt_sha256": "4d38ace397fc7be66b0950ac8c6efd95ac49e45a291754b7f3bdfb5c7b56b2ef",
+    "implementation_sha256": "d6e3ec4e21f55525882d08fd3ff1874880ce345843b128508c141544596dcd9b",
+    "ollama": {
+      "temperature": 0,
+      "num_ctx": 8192,
+      "num_predict": 1024,
+      "timeout_seconds": 600.0,
+      "max_retries": 1
+    },
+    "python": "3.11.15"
+  },
+  "hardware": {
+    "platform": "Windows-10-10.0.26100-SP0",
+    "system": "Windows",
+    "release": "10",
+    "machine": "AMD64",
+    "processor": "AMD64 Family 25 Model 80 Stepping 0, AuthenticAMD"
+  },
+  "run_status": "completed",
+  "started_at_utc": "2026-09-15T16:42:11.303285+00:00",
+  "completed_at_utc": "2026-09-15T16:48:43.607801+00:00",
+  "resumed_at_utc": null,
+  "resume_count": 0,
+  "logical_requests": 12,
+  "inference_attempts": 12,
+  "totals": {
+    "logical_requests": 12,
+    "generation_calls": 12,
+    "inference_attempts": 12,
+    "failed_requests": 0,
+    "retrieval_ms": 252.793,
+    "generation_ms": 391957.212,
+    "total_call_ms": 392208.432
+  },
+  "rows": [
+    {
+      "id": "q03",
+      "question": "How can one cached entry be invalidated?",
+      "reference_answer": "invalidate computes its path and unlinks it, ignoring FileNotFoundError.",
+      "answer": "To invalidate a cached entry, one can use the `invalidate` function from the `disk_cache` module. This function takes a URL and an optional suffix and deletes the corresponding cached file if it exists.\n\nSources: [src/cache/disk_cache.py:L75-L81]",
+      "sources": [
+        {
+          "path": "src/cache/disk_cache.py",
+          "start_line": 75,
+          "end_line": 81,
+          "text": "def invalidate(url: str, suffix: str = \".txt\") -> None:\n    \"\"\"Delete a single cached entry (silently ignores missing files).\"\"\"\n    p = _path_for(url, suffix)\n    try:\n        p.unlink()\n    except FileNotFoundError:\n        pass",
+          "raw_source": true
+        },
+        {
+          "path": "src/cache/disk_cache.py",
+          "start_line": 40,
+          "end_line": 50,
+          "text": "def load(url: str, suffix: str = \".txt\") -> str | None:\n    \"\"\"\n    Return the cached text for *url*, or ``None`` if not cached.\n    \"\"\"\n    p = _path_for(url, suffix)\n    if p.exists():\n        try:\n            return p.read_text(encoding=\"utf-8\")\n        except OSError:\n            return None\n    return None",
+          "raw_source": true
+        },
+        {
+          "path": "src/retrieval/ranker.py",
+          "start_line": 1,
+          "end_line": 36,
+          "text": "\"\"\"\nsrc/retrieval/ranker.py\n=======================\nRanks text chunks by relevance to a query.\n\nTwo modes\n---------\n* **lexical** (default, always available):\n  TF-IDF-weighted cosine similarity using only stdlib ``math`` and\n  ``collections``.\n\n* **semantic** (optional):\n  Uses ``sentence-transformers`` if it is installed; gracefully falls\n  back to lexical mode if the import fails or the model cannot load.\n\nThe active mode can be forced via ``RETRIEVAL_MODE`` in the environment\n(\"lexical\" | \"semantic\").\n\"\"\"\n\nfrom __future__ import annotations\n\nimport math\nimport re\nfrom collections import Counter\nfrom typing import TYPE_CHECKING\n\nfrom src.config.settings import RETRIEVAL_MODE\n\nif TYPE_CHECKING:  # pragma: no cover\n    pass\n\n\n# ---------------------------------------------------------------------------\n# Internal helpers \u2013 lexical\n# ---------------------------------------------------------------------------\n",
+          "raw_source": true
+        },
+        {
+          "path": "src/report/writer.py",
+          "start_line": 1,
+          "end_line": 16,
+          "text": "\"\"\"\nsrc/report/writer.py\n====================\nSaves one-shot Q&A answers as Markdown reports under ``reports/``.\n\"\"\"\n\nfrom __future__ import annotations\n\nimport os\nfrom datetime import datetime, timezone\nfrom pathlib import Path\n\n\n_REPORT_DIR = Path(\"reports\")\n\n",
+          "raw_source": true
+        },
+        {
+          "path": "src/utils/fetch_blob.py",
+          "start_line": 16,
+          "end_line": 43,
+          "text": "def fetch_blob_content(blob_url: str, refresh: bool = False) -> str:\n    \"\"\"\n    Fetch the text content at *blob_url*.\n\n    Parameters\n    ----------\n    blob_url: The raw GitHub URL to download.\n    refresh:  When ``True``, bypass the on-disk cache and re-download.\n\n    Returns\n    -------\n    Decoded text (``str``), or an empty string on failure.\n    \"\"\"\n    if not refresh:\n        cached = cache_load(blob_url)\n        if cached is not None:\n            return cached\n\n    try:\n        response = requests.get(blob_url, timeout=30)\n        response.raise_for_status()\n        data = response.text\n        cache_save(blob_url, data)\n        return data\n\n    except Exception as e:  # noqa: BLE001\n        print(f\"Error fetching blob content from {blob_url}: {e}\")\n        return \"\"",
+          "raw_source": true
+        },
+        {
+          "path": "src/cache/disk_cache.py",
+          "start_line": 1,
+          "end_line": 26,
+          "text": "\"\"\"\nsrc/cache/disk_cache.py\n=======================\nSimple filesystem cache for GitHub API responses and raw file blobs.\n\nFiles are stored under CACHE_DIR (default: .cache/ at the project root).\nEach entry is keyed by the SHA-256 of the original URL so filenames are\nsafe on all platforms.\n\"\"\"\n\nfrom __future__ import annotations\n\nimport hashlib\nimport json\nimport shutil\nfrom pathlib import Path\n\nfrom src.config.settings import CACHE_DIR\n\n_cache_root = Path(CACHE_DIR)\n\n\n# ---------------------------------------------------------------------------\n# Helpers\n# ---------------------------------------------------------------------------\n",
+          "raw_source": true
+        },
+        {
+          "path": "langgraph_app.py",
+          "start_line": 33,
+          "end_line": 45,
+          "text": "qa_workflow.add_node(\"analyze_tree\", analyze_tree_node)\nqa_workflow.add_node(\"fetch_and_parse\", fetch_and_parse_node)\nqa_workflow.add_node(\"summarize\", summarize_repo_node)\n\nqa_workflow.set_entry_point(\"query_analyzer\")\nqa_workflow.add_edge(\"query_analyzer\", \"analyze_tree\")\nqa_workflow.add_edge(\"analyze_tree\", \"fetch_and_parse\")\nqa_workflow.add_edge(\"fetch_and_parse\", \"summarize\")\nqa_workflow.add_edge(\"summarize\", END)\n\nqa_app = qa_workflow.compile()\n\n__all__ = [\"index_app\", \"qa_app\"]",
+          "raw_source": true
+        },
+        {
+          "path": "src/cache/disk_cache.py",
+          "start_line": 53,
+          "end_line": 61,
+          "text": "def load_json(url: str) -> dict | list | None:\n    \"\"\"Return cached JSON-decoded object, or ``None``.\"\"\"\n    raw = load(url, suffix=\".json\")\n    if raw is not None:\n        try:\n            return json.loads(raw)\n        except json.JSONDecodeError:\n            return None\n    return None",
+          "raw_source": true
+        }
+      ],
+      "metrics": {
+        "retrieval_ms": 27.195,
+        "generation_ms": 22245.183,
+        "context_chars": 4218,
+        "retrieved_chunks": 8,
+        "citation_check": {
+          "status": "valid",
+          "checked": 1,
+          "invalid": []
+        },
+        "abstained": false,
+        "answer_protocol": "source_ids_v1",
+        "quote_check": {
+          "status": "not_applicable",
+          "quotes_checked": 0
+        },
+        "inference": {
+          "model": "qwen2.5-coder:3b",
+          "created_at": "2026-09-15T16:42:33.6061631Z",
+          "done": true,
+          "done_reason": "stop",
+          "total_duration": 22229434000,
+          "load_duration": 5429062100,
+          "prompt_eval_count": 1119,
+          "prompt_eval_duration": 12972040000,
+          "eval_count": 67,
+          "eval_duration": 3789613000,
+          "inference_attempts": 1,
+          "retry_count": 0,
+          "request_elapsed_ms": 22244.681,
+          "http_status": 200,
+          "termination_reason": "stop"
+        },
+        "inference_attempts": 1,
+        "termination_reason": "stop",
+        "retrieval_mode": "code",
+        "generated": true,
+        "total_call_ms": 22272.241,
+        "outcome": "answered"
+      },
+      "model_output": "{\n  \"answer\": \"To invalidate a cached entry, one can use the `invalidate` function from the `disk_cache` module. This function takes a URL and an optional suffix and deletes the corresponding cached file if it exists.\",\n  \"source_ids\": [\"S1\"],\n  \"insufficient_evidence\": false\n}",
+      "status": "completed",
+      "outcome": "answered",
+      "score": null,
+      "reviewer_reason": ""
+    },
+    {
+      "id": "q07",
+      "question": "What does a raw file download failure return?",
+      "reference_answer": "It prints an error and returns an empty string.",
+      "answer": "An empty string\n\nSources: [src/utils/fetch_blob.py:L16-L43], [src/nodes/fetch_and_parse_node.py:L89-L120], [src/tools/parse_notebook.py:L1-L23], [src/tools/parse_python.py:L3-L60], [src/cache/disk_cache.py:L53-L61], [src/tools/parse_json_yaml.py:L5-L28], [src/github_repo_parser.py:L17-L28], [src/utils/fetch_blob.py:L1-L15]",
+      "sources": [
+        {
+          "path": "src/utils/fetch_blob.py",
+          "start_line": 16,
+          "end_line": 43,
+          "text": "def fetch_blob_content(blob_url: str, refresh: bool = False) -> str:\n    \"\"\"\n    Fetch the text content at *blob_url*.\n\n    Parameters\n    ----------\n    blob_url: The raw GitHub URL to download.\n    refresh:  When ``True``, bypass the on-disk cache and re-download.\n\n    Returns\n    -------\n    Decoded text (``str``), or an empty string on failure.\n    \"\"\"\n    if not refresh:\n        cached = cache_load(blob_url)\n        if cached is not None:\n            return cached\n\n    try:\n        response = requests.get(blob_url, timeout=30)\n        response.raise_for_status()\n        data = response.text\n        cache_save(blob_url, data)\n        return data\n\n    except Exception as e:  # noqa: BLE001\n        print(f\"Error fetching blob content from {blob_url}: {e}\")\n        return \"\"",
+          "raw_source": true
+        },
+        {
+          "path": "src/nodes/fetch_and_parse_node.py",
+          "start_line": 89,
+          "end_line": 120,
+          "text": "async def _fetch_one(\n    file_meta: dict,\n    refresh: bool,\n    semaphore: asyncio.Semaphore,\n    progress_callback,\n) -> Optional[dict]:\n    \"\"\"\n    Fetch and parse a single file.\n\n    Returns a parsed-file dict, or None if the file should be skipped\n    (already parsed or fetch failed).\n    \"\"\"\n    path = file_meta.get(\"path\", \"\")\n    url  = file_meta.get(\"url\", \"\")\n    ext  = file_meta.get(\"ext\", \"\").lower()\n\n    if not path or not url:\n        progress_callback()\n        return None\n\n    async with semaphore:\n        log.debug(\"Fetching %s\", path)\n        raw = await asyncio.to_thread(fetch_blob_content, url, refresh)\n\n    progress_callback()\n\n    if not raw:\n        log.warning(\"Empty content for %s\", path)\n        return {\"path\": path, \"ext\": ext, \"parsed\": f\"<Failed to fetch {path}>\"}\n\n    parsed = _parse(raw, ext, path)\n    return {\"path\": path, \"ext\": ext, \"parsed\": parsed}",
+          "raw_source": true
+        },
+        {
+          "path": "src/tools/parse_notebook.py",
+          "start_line": 1,
+          "end_line": 23,
+          "text": "def parse_notebook(raw: str) -> str:\n    \"\"\"\n    Extracts markdown + code cells from a .ipynb file.\n    Converts them to readable text for LLMs.\n    \"\"\"\n\n    try:\n        import nbformat\n\n        nb = nbformat.reads(raw, as_version=4)\n    except Exception:\n        return raw[:5000]\n\n    out = []\n\n    for cell in nb.cells:\n        if cell.cell_type == \"markdown\":\n            out.append(\"## Markdown Cell:\\n\" + cell.source)\n        elif cell.cell_type == \"code\":\n            out.append(\"## Code Cell:\\n\" + cell.source)\n    # print(f\"Checking Execution of parse_notebook tool: {out}\")\n\n    return \"\\n\\n\".join(out)[:8000]",
+          "raw_source": true
+        },
+        {
+          "path": "src/tools/parse_python.py",
+          "start_line": 3,
+          "end_line": 60,
+          "text": "def parse_python(raw: str) -> str:\n    \"\"\"\n    Extracts imports, classes, functions, and docstrings from a Python file.\n    Returns a clean textual summary.\n    \"\"\"\n\n    try:\n        tree = ast.parse(raw)\n    except Exception:\n        # If AST fails (bad syntax), return cleaned raw text\n        return _clean_raw_python(raw)\n\n    imports = []\n    functions = []\n    classes = []\n    docstrings = {}\n\n    for node in ast.walk(tree):\n\n        # Imports\n        if isinstance(node, ast.Import):\n            for alias in node.names:\n                imports.append(alias.name)\n\n        if isinstance(node, ast.ImportFrom):\n            if node.module:\n                imports.append(node.module)\n\n        # Functions\n        if isinstance(node, ast.FunctionDef):\n            functions.append(node.name)\n            docstrings[node.name] = ast.get_docstring(node) or \"\"\n\n        # Classes\n        if isinstance(node, ast.ClassDef):\n            classes.append(node.name)\n            docstrings[node.name] = ast.get_docstring(node) or \"\"\n    \n    summary = []\n\n    if imports:\n        summary.append(\"## Imports:\\n\" + \"\\n\".join(f\"- {i}\" for i in imports))\n\n    if classes:\n        summary.append(\"## Classes:\\n\" + \"\\n\".join(f\"- {c}\" for c in classes))\n\n    if functions:\n        summary.append(\"## Functions:\\n\" + \"\\n\".join(f\"- {f}\" for f in functions))\n\n    if docstrings:\n        summary.append(\"## Docstrings:\\n\")\n        for name, doc in docstrings.items():\n            if doc:\n                summary.append(f\"### {name}\\n{doc}\\n\")\n\n    # Return readable summary\n    # print(f\"Summary Debug 2: {summary}\")\n    return \"\\n\".join(summary) or _clean_raw_python(raw)",
+          "raw_source": true
+        },
+        {
+          "path": "src/cache/disk_cache.py",
+          "start_line": 53,
+          "end_line": 61,
+          "text": "def load_json(url: str) -> dict | list | None:\n    \"\"\"Return cached JSON-decoded object, or ``None``.\"\"\"\n    raw = load(url, suffix=\".json\")\n    if raw is not None:\n        try:\n            return json.loads(raw)\n        except json.JSONDecodeError:\n            return None\n    return None",
+          "raw_source": true
+        },
+        {
+          "path": "src/tools/parse_json_yaml.py",
+          "start_line": 5,
+          "end_line": 28,
+          "text": "def parse_json_yaml(raw: str) -> str:\n    \"\"\"\n    Safely prettify JSON or YAML.\n    Returns clean structure up to a safe token limit.\n    \"\"\"\n\n    # Try JSON first\n    try:\n        data = json.loads(raw)\n        pretty = json.dumps(data, indent=2)\n        return pretty[:5000]    # safe trimming\n    except:\n        pass\n\n    # Try YAML\n    try:\n        data = yaml.safe_load(raw)\n        pretty = yaml.dump(data, default_flow_style=False)\n        return pretty[:5000]\n    except:\n        pass\n\n    # Fallback = raw head\n    return raw[:5000]",
+          "raw_source": true
+        },
+        {
+          "path": "src/github_repo_parser.py",
+          "start_line": 17,
+          "end_line": 28,
+          "text": "    def __init__(self, github_token: bool = True):\n        self.s = requests.Session()\n        if github_token and GITHUB_TOKEN:\n            self.s.headers.update({\"Authorization\": f\"Token {GITHUB_TOKEN}\"})\n\n        self.exclude_ext = EXCLUDE_EXT\n\n        # Raw API (for fetching actual file contents)\n        self.raw_api = \"https://raw.githubusercontent.com/\"\n\n        # GitHub contents API (for listing files)\n        self.contents_api = \"https://api.github.com/repos/\"",
+          "raw_source": true
+        },
+        {
+          "path": "src/utils/fetch_blob.py",
+          "start_line": 1,
+          "end_line": 15,
+          "text": "\"\"\"\nsrc/utils/fetch_blob.py\n=======================\nFetches raw file content from a URL (typically a GitHub raw URL).\nResults are transparently cached on disk to avoid redundant network\nround-trips on repeated runs.\n\"\"\"\n\nfrom __future__ import annotations\n\nimport requests\n\nfrom src.cache.disk_cache import load as cache_load, save as cache_save\n\n",
+          "raw_source": true
+        }
+      ],
+      "metrics": {
+        "retrieval_ms": 18.362,
+        "generation_ms": 21465.166,
+        "context_chars": 5933,
+        "retrieved_chunks": 8,
+        "citation_check": {
+          "status": "valid",
+          "checked": 8,
+          "invalid": []
+        },
+        "abstained": false,
+        "answer_protocol": "source_ids_v1",
+        "quote_check": {
+          "status": "not_applicable",
+          "quotes_checked": 0
+        },
+        "inference": {
+          "model": "qwen2.5-coder:3b",
+          "created_at": "2026-09-15T16:42:55.0833409Z",
+          "done": true,
+          "done_reason": "stop",
+          "total_duration": 21437641200,
+          "load_duration": 2675500,
+          "prompt_eval_count": 1607,
+          "prompt_eval_duration": 17816475000,
+          "eval_count": 58,
+          "eval_duration": 3594033000,
+          "inference_attempts": 1,
+          "retry_count": 0,
+          "request_elapsed_ms": 21464.731,
+          "http_status": 200,
+          "termination_reason": "stop"
+        },
+        "inference_attempts": 1,
+        "termination_reason": "stop",
+        "retrieval_mode": "code",
+        "generated": true,
+        "total_call_ms": 21483.423,
+        "outcome": "answered"
+      },
+      "model_output": "{\n  \"answer\": \"An empty string\",\n  \"source_ids\": [\"S1\", \"S2\", \"S3\", \"S4\", \"S5\", \"S6\", \"S7\", \"S8\"],\n  \"insufficient_evidence\": false\n}",
+      "status": "completed",
+      "outcome": "answered",
+      "score": null,
+      "reviewer_reason": ""
+    },
+    {
+      "id": "q11",
+      "question": "What happens when GitHub responds with status 429?",
+      "reference_answer": "A PermissionError reports rate limiting and suggests configuring GITHUB_TOKEN.",
+      "answer": "When GitHub responds with status 429, it indicates that the user has exceeded the rate limit for making requests to the GitHub API. This can happen if the user is making too many requests in a short period of time. To resolve this issue, the user can set a GitHub token in their environment variables to increase their API rate limit. Alternatively, the user can wait and retry their request later.\n\nSources: [src/github_repo_parser.py:L51-L86], [run_cli.py:L362-L458], [src/github_repo_parser.py:L89-L97], [src/report/writer.py:L17-L86], [src/utils/fetch_blob.py:L1-L15], [src/__init__.py:L1-L1], [requirements.txt:L1-L27], [src/utils/fetch_blob.py:L16-L43]",
+      "sources": [
+        {
+          "path": "src/github_repo_parser.py",
+          "start_line": 51,
+          "end_line": 86,
+          "text": "    def _fetch_recursive(self, owner, repo, path=\"\", branch=\"main\"):\n        \"\"\"\n        Recursively fetch GitHub directory tree using the Contents API.\n        Returns flat list of all file metadata.\n        \"\"\"\n        url = f\"{self.contents_api}{owner}/{repo}/contents/{path}?ref={branch}\"\n        response = self.s.get(url)\n\n        if response.status_code == 403:\n            raise PermissionError(\n                \"GitHub returned 403 Forbidden. \"\n                \"You may have hit the API rate limit. \"\n                \"Set GITHUB_TOKEN=<your_token> in .env for higher limits.\"\n            )\n        if response.status_code == 429:\n            raise PermissionError(\n                \"GitHub rate limit exceeded (429). \"\n                \"Set GITHUB_TOKEN=<your_token> in .env and retry.\"\n            )\n        if response.status_code != 200:\n            raise ValueError(f\"Error {response.status_code}: {response.text}\")\n\n        items = response.json()\n\n        # GitHub returns either dict (file) or list (directory)\n        if isinstance(items, dict) and items.get(\"type\") == \"file\":\n            return [items]\n\n        files = []\n        for item in items:\n            if item[\"type\"] == \"dir\":\n                files.extend(self._fetch_recursive(owner, repo, item[\"path\"], branch))\n            elif item[\"type\"] == \"file\":\n                files.append(item)\n\n        return files",
+          "raw_source": true
+        },
+        {
+          "path": "src/utils/fetch_blob.py",
+          "start_line": 16,
+          "end_line": 43,
+          "text": "def fetch_blob_content(blob_url: str, refresh: bool = False) -> str:\n    \"\"\"\n    Fetch the text content at *blob_url*.\n\n    Parameters\n    ----------\n    blob_url: The raw GitHub URL to download.\n    refresh:  When ``True``, bypass the on-disk cache and re-download.\n\n    Returns\n    -------\n    Decoded text (``str``), or an empty string on failure.\n    \"\"\"\n    if not refresh:\n        cached = cache_load(blob_url)\n        if cached is not None:\n            return cached\n\n    try:\n        response = requests.get(blob_url, timeout=30)\n        response.raise_for_status()\n        data = response.text\n        cache_save(blob_url, data)\n        return data\n\n    except Exception as e:  # noqa: BLE001\n        print(f\"Error fetching blob content from {blob_url}: {e}\")\n        return \"\"",
+          "raw_source": true
+        },
+        {
+          "path": "src/__init__.py",
+          "start_line": 1,
+          "end_line": 1,
+          "text": "\"\"\"Source package for the GitHub Code-Analyser Agent.\"\"\"",
+          "raw_source": true
+        },
+        {
+          "path": "src/github_repo_parser.py",
+          "start_line": 89,
+          "end_line": 97,
+          "text": "    def _get_default_branch(self, owner: str, repo: str) -> str:\n        response = self.s.get(f\"{self.contents_api}{owner}/{repo}\")\n        if response.status_code == 404:\n            raise ValueError(\n                f\"Repository '{owner}/{repo}' not found. \"\n                \"Check the URL and make sure the repo is public (or GITHUB_TOKEN is set).\"\n            )\n        response.raise_for_status()\n        return response.json().get(\"default_branch\", \"main\")",
+          "raw_source": true
+        },
+        {
+          "path": "requirements.txt",
+          "start_line": 1,
+          "end_line": 27,
+          "text": "# GitHub Code-Analyser Agent \u2014 direct runtime dependencies\n# Install with: pip install -r requirements.txt\n\n# LangChain / LangGraph ecosystem\nlangchain-core>=0.3\nlangchain-google-genai>=3.0\nlangchain-community>=0.4\nlanggraph>=1.0\n\n# Google Gemini SDK\ngoogle-generativeai>=0.8\n\n# HTTP & GitHub access\nrequests>=2.31\n\n# Config / environment\npython-dotenv>=1.0\n\n# File parsers\nPyYAML>=6.0\nnbformat>=5.9\n\n# Progress display (optional but recommended)\ntqdm>=4.65\n\n# Optional: semantic retrieval (install manually if needed)\n# sentence-transformers>=2.7",
+          "raw_source": true
+        },
+        {
+          "path": "src/report/writer.py",
+          "start_line": 17,
+          "end_line": 86,
+          "text": "def write_report(\n    repo_url: str,\n    question: str,\n    selected_files: list[dict],\n    answer: str,\n    branch: str | None = None,\n) -> Path:\n    \"\"\"\n    Persist a Q&A report to ``reports/report_<timestamp>.md``.\n\n    Parameters\n    ----------\n    repo_url:       The analysed GitHub repository URL.\n    question:       The user's question.\n    selected_files: List of file-metadata dicts chosen by the agent.\n    answer:         The LLM-generated answer.\n    branch:         Git branch that was analysed (``None`` \u2192 \"default\").\n\n    Returns\n    -------\n    The :class:`~pathlib.Path` of the written report file.\n    \"\"\"\n    _REPORT_DIR.mkdir(parents=True, exist_ok=True)\n\n    timestamp = datetime.now(tz=timezone.utc)\n    filename = f\"report_{timestamp.strftime('%Y%m%dT%H%M%SZ')}.md\"\n    report_path = _REPORT_DIR / filename\n\n    # Build selected-files list\n    file_lines = \"\\n\".join(\n        f\"- `{f.get('path', '<unknown>')}`\"\n        for f in (selected_files or [])\n    ) or \"_No files selected._\"\n\n    branch_display = branch or \"default\"\n\n    content = f\"\"\"\\\n# GitHub Code-Analyser Report\n\n| Field | Value |\n|---|---|\n| **Repository** | {repo_url} |\n| **Branch** | `{branch_display}` |\n| **Generated** | {timestamp.strftime('%Y-%m-%d %H:%M:%S UTC')} |\n\n---\n\n## Question\n\n> {question}\n\n---\n\n## Files Analysed\n\n{file_lines}\n\n---\n\n## Answer\n\n{answer}\n\n---\n\n_Generated by [GitHub Code-Analyser Agent](https://github.com)_\n\"\"\"\n\n    report_path.write_text(content, encoding=\"utf-8\")\n    return report_path",
+          "raw_source": true
+        },
+        {
+          "path": "src/utils/fetch_blob.py",
+          "start_line": 1,
+          "end_line": 15,
+          "text": "\"\"\"\nsrc/utils/fetch_blob.py\n=======================\nFetches raw file content from a URL (typically a GitHub raw URL).\nResults are transparently cached on disk to avoid redundant network\nround-trips on repeated runs.\n\"\"\"\n\nfrom __future__ import annotations\n\nimport requests\n\nfrom src.cache.disk_cache import load as cache_load, save as cache_save\n\n",
+          "raw_source": true
+        },
+        {
+          "path": "run_cli.py",
+          "start_line": 362,
+          "end_line": 458,
+          "text": "async def main() -> int:\n    args = parse_args()\n\n    # ---- Verbose logging ----\n    if args.verbose:\n        from src.utils.logger import set_verbose\n        set_verbose(True)\n\n    # ---- Smoke test (no API key needed) ----\n    if args.smoke_test:\n        return smoke_test()\n\n    # ---- Validate repo URL ----\n    if not args.repo_url:\n        print(\n            \"Usage: python run_cli.py <github_repo_url> [options]\\n\"\n            \"Try:   python run_cli.py --smoke-test\\n\"\n            \"Help:  python run_cli.py --help\",\n            file=sys.stderr,\n        )\n        return 1\n\n    # ---- Check API key early ----\n    _check_api_key()\n\n    # ---- Apply retrieval-mode override ----\n    if args.retrieval_mode:\n        os.environ[\"RETRIEVAL_MODE\"] = args.retrieval_mode\n        import src.config.settings as _s\n        _s.RETRIEVAL_MODE = args.retrieval_mode\n\n    # ---- Validate URL format before hitting the network ----\n    repo_url = args.repo_url.strip()\n    if \"github.com/\" not in repo_url:\n        print(\n            f\"Error: '{repo_url}' doesn't look like a GitHub URL.\\n\"\n            \"  Expected format: https://github.com/owner/repo\",\n            file=sys.stderr,\n        )\n        return 1\n\n    try:\n        repo_state = await load_repo(\n            repo_url,\n            branch=args.branch,\n            refresh_cache=args.refresh_cache,\n            top_k=args.top_k,\n        )\n        print(\"Repository indexed. You can now ask questions about the codebase.\")\n\n        if args.question:\n            answered_state = await qa(repo_state, args.question, top_k=args.top_k)\n            answer = answered_state.get(\"summary\") or \"(No answer generated.)\"\n            print(\"\\nAgent:\\n\")\n            print(answer)\n\n            _try_save_report(\n                repo_url=repo_url,\n                question=args.question,\n                state=answered_state,\n                branch=args.branch,\n                no_report=args.no_report,\n            )\n            return 0\n\n        await qa_loop(repo_state, args)\n        return 0\n\n    except PermissionError as e:\n        print(f\"GitHub Error: {e}\", file=sys.stderr)\n        return 1\n\n    except ValueError as e:\n        msg = str(e)\n        if \"must look like\" in msg or \"not found\" in msg:\n            print(f\"Invalid repository: {msg}\", file=sys.stderr)\n        else:\n            print(f\"Error: {msg}\", file=sys.stderr)\n        return 1\n\n    except Exception as error:\n        message = str(error)\n        if \"RESOURCE_EXHAUSTED\" in message or \"429\" in message:\n            print(\n                \"Gemini quota exceeded. \"\n                \"Try a lighter model (GOOGLE_MODEL=gemini-1.5-flash) or wait and retry.\",\n                file=sys.stderr,\n            )\n        elif \"GOOGLE_API_KEY\" in message or \"GEMINI_API_KEY\" in message:\n            print(\n                \"Error: Missing or invalid Gemini API key.\\n\"\n                \"  Set GOOGLE_API_KEY=<your_key> in your .env file.\",\n                file=sys.stderr,\n            )\n        else:\n            print(f\"Error: {message}\", file=sys.stderr)\n        return 1",
+          "raw_source": true
+        }
+      ],
+      "metrics": {
+        "retrieval_ms": 20.713,
+        "generation_ms": 35247.83,
+        "context_chars": 8450,
+        "retrieved_chunks": 8,
+        "citation_check": {
+          "status": "valid",
+          "checked": 8,
+          "invalid": []
+        },
+        "abstained": false,
+        "answer_protocol": "source_ids_v1",
+        "quote_check": {
+          "status": "not_applicable",
+          "quotes_checked": 0
+        },
+        "inference": {
+          "model": "qwen2.5-coder:3b",
+          "created_at": "2026-09-15T16:43:30.3652037Z",
+          "done": true,
+          "done_reason": "stop",
+          "total_duration": 35230155600,
+          "load_duration": 2746700,
+          "prompt_eval_count": 2180,
+          "prompt_eval_duration": 26228423000,
+          "eval_count": 135,
+          "eval_duration": 8956462000,
+          "inference_attempts": 1,
+          "retry_count": 0,
+          "request_elapsed_ms": 35247.293,
+          "http_status": 200,
+          "termination_reason": "stop"
+        },
+        "inference_attempts": 1,
+        "termination_reason": "stop",
+        "retrieval_mode": "code",
+        "generated": true,
+        "total_call_ms": 35268.366,
+        "outcome": "answered"
+      },
+      "model_output": "{\n  \"answer\": \"When GitHub responds with status 429, it indicates that the user has exceeded the rate limit for making requests to the GitHub API. This can happen if the user is making too many requests in a short period of time. To resolve this issue, the user can set a GitHub token in their environment variables to increase their API rate limit. Alternatively, the user can wait and retry their request later.\",\n  \"source_ids\": [\"S1\", \"S8\", \"S4\", \"S6\", \"S7\", \"S3\", \"S5\", \"S2\"],\n  \"insufficient_evidence\": false\n}",
+      "status": "completed",
+      "outcome": "answered",
+      "score": null,
+      "reviewer_reason": ""
+    },
+    {
+      "id": "q15",
+      "question": "How are function docstrings extracted from Python?",
+      "reference_answer": "The parser walks an AST and uses ast.get_docstring on recognized definitions.",
+      "answer": "Function docstrings are extracted from Python using the `ast` module to parse the source code and retrieve the docstring associated with each function definition.\n\nSources: [src/tools/parse_python.py:L3-L60], [src/nodes/query_analyser_node.py:L81-L109], [.github/workflows/ci.yml:L1-L38], [src/utils/summarize_state.py:L11-L23]",
+      "sources": [
+        {
+          "path": "src/tools/parse_python.py",
+          "start_line": 3,
+          "end_line": 60,
+          "text": "def parse_python(raw: str) -> str:\n    \"\"\"\n    Extracts imports, classes, functions, and docstrings from a Python file.\n    Returns a clean textual summary.\n    \"\"\"\n\n    try:\n        tree = ast.parse(raw)\n    except Exception:\n        # If AST fails (bad syntax), return cleaned raw text\n        return _clean_raw_python(raw)\n\n    imports = []\n    functions = []\n    classes = []\n    docstrings = {}\n\n    for node in ast.walk(tree):\n\n        # Imports\n        if isinstance(node, ast.Import):\n            for alias in node.names:\n                imports.append(alias.name)\n\n        if isinstance(node, ast.ImportFrom):\n            if node.module:\n                imports.append(node.module)\n\n        # Functions\n        if isinstance(node, ast.FunctionDef):\n            functions.append(node.name)\n            docstrings[node.name] = ast.get_docstring(node) or \"\"\n\n        # Classes\n        if isinstance(node, ast.ClassDef):\n            classes.append(node.name)\n            docstrings[node.name] = ast.get_docstring(node) or \"\"\n    \n    summary = []\n\n    if imports:\n        summary.append(\"## Imports:\\n\" + \"\\n\".join(f\"- {i}\" for i in imports))\n\n    if classes:\n        summary.append(\"## Classes:\\n\" + \"\\n\".join(f\"- {c}\" for c in classes))\n\n    if functions:\n        summary.append(\"## Functions:\\n\" + \"\\n\".join(f\"- {f}\" for f in functions))\n\n    if docstrings:\n        summary.append(\"## Docstrings:\\n\")\n        for name, doc in docstrings.items():\n            if doc:\n                summary.append(f\"### {name}\\n{doc}\\n\")\n\n    # Return readable summary\n    # print(f\"Summary Debug 2: {summary}\")\n    return \"\\n\".join(summary) or _clean_raw_python(raw)",
+          "raw_source": true
+        },
+        {
+          "path": "run_cli.py",
+          "start_line": 190,
+          "end_line": 282,
+          "text": "def smoke_test() -> int:\n    \"\"\"\n    Fast local sanity-check.\n    Exercises: flatten_tree, parse_python, detect_intent,\n               extract_keywords, extract_targets, chunk_text, rank_chunks,\n               _is_skippable, _score.\n\n    Returns 0 on success, 1 on failure.\n    \"\"\"\n    from src.nodes.query_analyser_node import detect_intent, extract_keywords, extract_targets\n    from src.tools.parse_python import parse_python\n    from src.utils.flatten_tree import flatten_tree\n    from src.retrieval.chunker import chunk_text\n    from src.retrieval.ranker import rank_chunks\n    from src.nodes.analyze_repo_node import _is_skippable, _score\n\n    errors: list[str] = []\n\n    # --- flatten_tree ---\n    sample_tree = {\n        \"src/\": {\n            \"app.py\": {\n                \"path\": \"src/app.py\",\n                \"type\": \"file\",\n                \"ext\": \".py\",\n                \"size_kb\": 1.0,\n                \"url\": \"https://example.com/src/app.py\",\n            }\n        }\n    }\n    flattened = flatten_tree(sample_tree)\n    if not (flattened and flattened[0][\"path\"] == \"src/app.py\"):\n        errors.append(\"flatten_tree: unexpected result\")\n\n    # --- parse_python ---\n    parsed = parse_python(\"import os\\n\\ndef run_app():\\n    return 'ok'\\n\")\n    if \"run_app\" not in parsed:\n        errors.append(\"parse_python: function name not found in output\")\n\n    # --- detect_intent ---\n    intent = detect_intent(\"explain the pipeline flow\")\n    if intent != \"pipeline_flow\":\n        errors.append(f\"detect_intent: expected 'pipeline_flow', got '{intent}'\")\n\n    # --- extract_keywords ---\n    keywords = extract_keywords(\"where is run_app used\")\n    if \"run_app\" not in keywords:\n        errors.append(\"extract_keywords: 'run_app' not in keywords\")\n\n    # --- extract_targets ---\n    targets = extract_targets(\"where is run_app() used\")\n    if targets.get(\"function\") != \"run_app\":\n        errors.append(f\"extract_targets: expected function='run_app', got {targets}\")\n\n    # --- chunk_text ---\n    long_text = \" \".join([f\"word{i}\" for i in range(1000)])\n    chunks = chunk_text(long_text, chunk_size=50, overlap=10)\n    if len(chunks) < 2:\n        errors.append(f\"chunk_text: expected multiple chunks, got {len(chunks)}\")\n\n    # --- rank_chunks ---\n    sample_chunks = [\"the pipeline starts here\", \"import os and sys\", \"def run_app(): pass\"]\n    ranked = rank_chunks(\"pipeline flow\", sample_chunks, top_k=2, mode=\"lexical\")\n    if not ranked:\n        errors.append(\"rank_chunks: returned empty list\")\n    if len(ranked) > 2:\n        errors.append(f\"rank_chunks: expected <=2 chunks, got {len(ranked)}\")\n\n    # --- _is_skippable ---\n    if not _is_skippable(\"vendor/jquery.min.js\", \".js\"):\n        errors.append(\"_is_skippable: should skip *.min.js\")\n    if not _is_skippable(\"styles/main.min.css\", \".css\"):\n        errors.append(\"_is_skippable: should skip *.min.css\")\n    if not _is_skippable(\"dist/bundle.js.map\", \".map\"):\n        errors.append(\"_is_skippable: should skip *.js.map\")\n    if _is_skippable(\"src/main.py\", \".py\"):\n        errors.append(\"_is_skippable: should NOT skip .py files\")\n\n    # --- _score (basic sanity) ---\n    readme_meta = {\"path\": \"README.md\", \"ext\": \".md\", \"size_kb\": 5}\n    deep_meta   = {\"path\": \"a/b/c/d/e/helper.py\", \"ext\": \".py\", \"size_kb\": 5}\n    score_readme = _score(readme_meta, [\"readme\"], \"high_level_summary\", [], {})\n    score_deep   = _score(deep_meta,   [\"readme\"], \"high_level_summary\", [], {})\n    if score_readme <= score_deep:\n        errors.append(\"_score: README should outscore deeply nested helper\")\n\n    if errors:\n        for err in errors:\n            print(f\"FAIL: {err}\", file=sys.stderr)\n        return 1\n\n    print(\"Smoke test passed - all checks OK\")\n    return 0",
+          "raw_source": true
+        },
+        {
+          "path": "src/nodes/query_analyser_node.py",
+          "start_line": 47,
+          "end_line": 56,
+          "text": "def extract_keywords(query: str):\n    # Simple keyword strategy \u2013 expand later\n    tokens = re.findall(r\"[A-Za-z_][A-Za-z0-9_]*\", query)\n    python_keywords = {\"the\", \"a\", \"to\", \"in\", \"and\", \"where\", \"what\"}\n\n    filtered = [\n        t for t in tokens \n        if t.lower() not in python_keywords and len(t) > 2\n    ]\n    return filtered[:5]",
+          "raw_source": true
+        },
+        {
+          "path": "src/nodes/query_analyser_node.py",
+          "start_line": 59,
+          "end_line": 78,
+          "text": "def extract_targets(query: str):\n    # Detect patterns like function(), directories, or variables\n    targets = {}\n\n    # function_name()\n    fn_match = re.findall(r\"([A-Za-z_][A-Za-z0-9_]*)\\s*\\(\", query)\n    if fn_match:\n        targets[\"function\"] = fn_match[0]\n\n    # directories like src/core or /models/\n    dir_match = re.findall(r\"([A-Za-z0-9_\\-/]+/)\", query)\n    if dir_match:\n        targets[\"directory\"] = dir_match[0]\n\n    # variable (simple heuristic)\n    var_match = re.findall(r\"type of ([A-Za-z_][A-Za-z0-9_]*)\", query)\n    if var_match:\n        targets[\"variable\"] = var_match[0]\n\n    return targets",
+          "raw_source": true
+        },
+        {
+          "path": "src/nodes/query_analyser_node.py",
+          "start_line": 81,
+          "end_line": 109,
+          "text": "async def query_analyser_node(state: dict) -> dict:\n    \"\"\"\n    Reads latest human message, determines intent and extracts useful info.\n    \"\"\"\n\n    messages = state.get(\"messages\", [])\n    user_query = \"\"\n\n    for msg in reversed(messages):\n        if isinstance(msg, HumanMessage):\n            user_query = msg.content\n            break\n\n    if not user_query:\n        return {\n            \"intent\": \"high_level_summary\",\n            \"keywords\": [],\n            \"targets\": {}\n        }\n\n    intent = detect_intent(user_query)\n    keywords = extract_keywords(user_query)\n    targets = extract_targets(user_query)\n\n    return {\n        \"intent\": intent,\n        \"keywords\": keywords,\n        \"targets\": targets,\n    }",
+          "raw_source": true
+        },
+        {
+          "path": ".github/workflows/ci.yml",
+          "start_line": 1,
+          "end_line": 38,
+          "text": "name: CI\n\non:\n  push:\n  pull_request:\n\njobs:\n  test:\n    name: Compile & Test (Python ${{ matrix.python-version }})\n    runs-on: ubuntu-latest\n    strategy:\n      fail-fast: false\n      matrix:\n        python-version: [\"3.11\", \"3.12\"]\n\n    steps:\n      - uses: actions/checkout@v4\n\n      - uses: actions/setup-python@v5\n        with:\n          python-version: ${{ matrix.python-version }}\n          cache: pip\n\n      - name: Install dependencies\n        run: |\n          python -m pip install --upgrade pip\n          pip install -r requirements-dev.txt\n\n      - name: Compile (syntax check)\n        run: python -m compileall -q .\n\n      - name: Unit tests\n        env:\n          TQDM_DISABLE: \"1\"\n        run: python -m pytest tests/ -v --tb=short\n\n      - name: Smoke test (no network / no API key)\n        run: python run_cli.py --smoke-test",
+          "raw_source": true
+        },
+        {
+          "path": "src/utils/__init__.py",
+          "start_line": 1,
+          "end_line": 1,
+          "text": "\"\"\"Utility functions.\"\"\"",
+          "raw_source": true
+        },
+        {
+          "path": "src/utils/summarize_state.py",
+          "start_line": 11,
+          "end_line": 23,
+          "text": "\n#for debugging only\n#Ouptut:\n#{\n#   \"repo_tree\": \"<dict> keys=112, depth=4\",\n#   \"selected_files\": \"<list> len=13\",\n#   \"parsed_files\": \"<list> len=10\",\n#   \"messages\": \"<list> len=2\",\n#   \"intent\": \"function_usage\",\n#   \"keywords\": [\"preprocess\", \"usage\"],\n#   \"targets\": {\"function\": \"preprocess\"},\n#   ...\n# }",
+          "raw_source": true
+        }
+      ],
+      "metrics": {
+        "retrieval_ms": 18.368,
+        "generation_ms": 32860.95,
+        "context_chars": 8555,
+        "retrieved_chunks": 8,
+        "citation_check": {
+          "status": "valid",
+          "checked": 4,
+          "invalid": []
+        },
+        "abstained": false,
+        "answer_protocol": "source_ids_v1",
+        "quote_check": {
+          "status": "not_applicable",
+          "quotes_checked": 0
+        },
+        "inference": {
+          "model": "qwen2.5-coder:3b",
+          "created_at": "2026-09-15T16:44:03.2390915Z",
+          "done": true,
+          "done_reason": "stop",
+          "total_duration": 32833671300,
+          "load_duration": 2112300,
+          "prompt_eval_count": 2351,
+          "prompt_eval_duration": 28370370000,
+          "eval_count": 67,
+          "eval_duration": 4423568000,
+          "inference_attempts": 1,
+          "retry_count": 0,
+          "request_elapsed_ms": 32860.519,
+          "http_status": 200,
+          "termination_reason": "stop"
+        },
+        "inference_attempts": 1,
+        "termination_reason": "stop",
+        "retrieval_mode": "code",
+        "generated": true,
+        "total_call_ms": 32879.208,
+        "outcome": "answered"
+      },
+      "model_output": "{\n  \"answer\": \"Function docstrings are extracted from Python using the `ast` module to parse the source code and retrieve the docstring associated with each function definition.\",\n  \"source_ids\": [\"S1\", \"S5\", \"S6\", \"S8\"],\n  \"insufficient_evidence\": false\n}",
+      "status": "completed",
+      "outcome": "answered",
+      "score": null,
+      "reviewer_reason": ""
+    },
+    {
+      "id": "q19",
+      "question": "What is the default text chunk size and overlap?",
+      "reference_answer": "400 words per chunk and 50 words overlap.",
+      "answer": "The default text chunk size is 400 and the overlap is 50.\n\nSources: [src/retrieval/chunker.py:L11-L47], [src/retrieval/__init__.py:L1-L3], [src/nodes/summarize_repo_node.py:L1-L6], [src/nodes/summarize_repo_node.py:L7-L106], [src/retrieval/ranker.py:L105-L135], [src/github_repo_parser.py:L99-L153], [src/retrieval/ranker.py:L1-L36]",
+      "sources": [
+        {
+          "path": "src/retrieval/chunker.py",
+          "start_line": 11,
+          "end_line": 47,
+          "text": "def chunk_text(\n    text: str,\n    chunk_size: int = 400,\n    overlap: int = 50,\n) -> list[str]:\n    \"\"\"\n    Split *text* into overlapping word-level chunks.\n\n    Parameters\n    ----------\n    text:       The source text to split.\n    chunk_size: Maximum number of words per chunk.\n    overlap:    Number of words shared between consecutive chunks.\n\n    Returns\n    -------\n    A list of string chunks.  Returns ``[\"\"]`` if *text* is empty.\n    \"\"\"\n    if not text or not text.strip():\n        return [\"\"]\n\n    words = text.split()\n    if not words:\n        return [\"\"]\n\n    chunks: list[str] = []\n    step = max(1, chunk_size - overlap)\n    start = 0\n\n    while start < len(words):\n        end = min(start + chunk_size, len(words))\n        chunks.append(\" \".join(words[start:end]))\n        if end == len(words):\n            break\n        start += step\n\n    return chunks if chunks else [\"\"]",
+          "raw_source": true
+        },
+        {
+          "path": "run_cli.py",
+          "start_line": 190,
+          "end_line": 282,
+          "text": "def smoke_test() -> int:\n    \"\"\"\n    Fast local sanity-check.\n    Exercises: flatten_tree, parse_python, detect_intent,\n               extract_keywords, extract_targets, chunk_text, rank_chunks,\n               _is_skippable, _score.\n\n    Returns 0 on success, 1 on failure.\n    \"\"\"\n    from src.nodes.query_analyser_node import detect_intent, extract_keywords, extract_targets\n    from src.tools.parse_python import parse_python\n    from src.utils.flatten_tree import flatten_tree\n    from src.retrieval.chunker import chunk_text\n    from src.retrieval.ranker import rank_chunks\n    from src.nodes.analyze_repo_node import _is_skippable, _score\n\n    errors: list[str] = []\n\n    # --- flatten_tree ---\n    sample_tree = {\n        \"src/\": {\n            \"app.py\": {\n                \"path\": \"src/app.py\",\n                \"type\": \"file\",\n                \"ext\": \".py\",\n                \"size_kb\": 1.0,\n                \"url\": \"https://example.com/src/app.py\",\n            }\n        }\n    }\n    flattened = flatten_tree(sample_tree)\n    if not (flattened and flattened[0][\"path\"] == \"src/app.py\"):\n        errors.append(\"flatten_tree: unexpected result\")\n\n    # --- parse_python ---\n    parsed = parse_python(\"import os\\n\\ndef run_app():\\n    return 'ok'\\n\")\n    if \"run_app\" not in parsed:\n        errors.append(\"parse_python: function name not found in output\")\n\n    # --- detect_intent ---\n    intent = detect_intent(\"explain the pipeline flow\")\n    if intent != \"pipeline_flow\":\n        errors.append(f\"detect_intent: expected 'pipeline_flow', got '{intent}'\")\n\n    # --- extract_keywords ---\n    keywords = extract_keywords(\"where is run_app used\")\n    if \"run_app\" not in keywords:\n        errors.append(\"extract_keywords: 'run_app' not in keywords\")\n\n    # --- extract_targets ---\n    targets = extract_targets(\"where is run_app() used\")\n    if targets.get(\"function\") != \"run_app\":\n        errors.append(f\"extract_targets: expected function='run_app', got {targets}\")\n\n    # --- chunk_text ---\n    long_text = \" \".join([f\"word{i}\" for i in range(1000)])\n    chunks = chunk_text(long_text, chunk_size=50, overlap=10)\n    if len(chunks) < 2:\n        errors.append(f\"chunk_text: expected multiple chunks, got {len(chunks)}\")\n\n    # --- rank_chunks ---\n    sample_chunks = [\"the pipeline starts here\", \"import os and sys\", \"def run_app(): pass\"]\n    ranked = rank_chunks(\"pipeline flow\", sample_chunks, top_k=2, mode=\"lexical\")\n    if not ranked:\n        errors.append(\"rank_chunks: returned empty list\")\n    if len(ranked) > 2:\n        errors.append(f\"rank_chunks: expected <=2 chunks, got {len(ranked)}\")\n\n    # --- _is_skippable ---\n    if not _is_skippable(\"vendor/jquery.min.js\", \".js\"):\n        errors.append(\"_is_skippable: should skip *.min.js\")\n    if not _is_skippable(\"styles/main.min.css\", \".css\"):\n        errors.append(\"_is_skippable: should skip *.min.css\")\n    if not _is_skippable(\"dist/bundle.js.map\", \".map\"):\n        errors.append(\"_is_skippable: should skip *.js.map\")\n    if _is_skippable(\"src/main.py\", \".py\"):\n        errors.append(\"_is_skippable: should NOT skip .py files\")\n\n    # --- _score (basic sanity) ---\n    readme_meta = {\"path\": \"README.md\", \"ext\": \".md\", \"size_kb\": 5}\n    deep_meta   = {\"path\": \"a/b/c/d/e/helper.py\", \"ext\": \".py\", \"size_kb\": 5}\n    score_readme = _score(readme_meta, [\"readme\"], \"high_level_summary\", [], {})\n    score_deep   = _score(deep_meta,   [\"readme\"], \"high_level_summary\", [], {})\n    if score_readme <= score_deep:\n        errors.append(\"_score: README should outscore deeply nested helper\")\n\n    if errors:\n        for err in errors:\n            print(f\"FAIL: {err}\", file=sys.stderr)\n        return 1\n\n    print(\"Smoke test passed - all checks OK\")\n    return 0",
+          "raw_source": true
+        },
+        {
+          "path": "src/nodes/summarize_repo_node.py",
+          "start_line": 7,
+          "end_line": 106,
+          "text": "async def summarize_repo_node(state: dict) -> dict:\n    \"\"\"\n    Final summarization node.\n\n    1. Splits each parsed file's text into overlapping word-level chunks.\n    2. Ranks all chunks by relevance to the user query (lexical by default;\n       semantic if sentence-transformers is available and RETRIEVAL_MODE=semantic).\n    3. Feeds only the top-k most relevant chunks to the LLM, reducing token\n       usage while improving answer quality.\n    \"\"\"\n\n    llm = state.get(\"llm\")\n    global_context = state.get(\"global_context\", \"\")\n    parsed_files = state.get(\"parsed_files\", [])\n    intent = state.get(\"intent\")\n    keywords = state.get(\"keywords\", [])\n    targets = state.get(\"targets\", {})\n    selected_files = state.get(\"selected_files\", [])\n\n    # Allow per-run override via state (set by CLI --top-k flag)\n    top_k: int = state.get(\"top_k\") or TOP_K\n\n    if not llm:\n        return {\"messages\": state.get(\"messages\", []) + [\n            SystemMessage(content=\"LLM not found in state, cannot summarize.\")\n        ]}\n\n    user_query = \"\"\n    for msg in reversed(state.get(\"messages\", [])):\n        if isinstance(msg, HumanMessage):\n            user_query = msg.content\n            break\n\n    if not user_query:\n        user_query = \"Provide a summary of this repository.\"\n\n    selected_paths = [f.get(\"path\") for f in selected_files if isinstance(f, dict)]\n\n    # ------------------------------------------------------------------\n    # Build all chunks from parsed files\n    # ------------------------------------------------------------------\n    all_chunks: list[str] = []\n    chunk_labels: list[str] = []  # tracks which file each chunk came from\n\n    for f in parsed_files:\n        path = f.get(\"path\", \"<unknown>\")\n        parsed_text = f.get(\"parsed\", \"\")\n        if not parsed_text:\n            continue\n        file_chunks = chunk_text(parsed_text)\n        for i, c in enumerate(file_chunks):\n            all_chunks.append(c)\n            chunk_labels.append(f\"### File: {path} (chunk {i + 1})\\n\")\n\n    # ------------------------------------------------------------------\n    # Rank and select top-k\n    # ------------------------------------------------------------------\n    if all_chunks:\n        ranked_chunks = rank_chunks(user_query, all_chunks, top_k=top_k)\n        print(\n            f\"[retrieval] {len(all_chunks)} total chunks -> \"\n            f\"top {len(ranked_chunks)} selected (mode={RETRIEVAL_MODE})\"\n        )\n        merged_text = \"\\n\".join(ranked_chunks)\n    else:\n        # Fallback: truncated raw merge (original behaviour)\n        merged_chunks = [\n            f\"\\n### File: {f.get('path', '<unknown>')}\\n{f.get('parsed', '')}\\n\"\n            for f in parsed_files\n        ]\n        merged_text = \"\\n\".join(merged_chunks[:MAX_CHUNKS])\n\n    system_msg = SystemMessage(content=(\n        \"You are an expert software engineer and code analysis assistant. \"\n        \"You receive:\\n\"\n        \"- A high-level repository context\\n\"\n        \"- A list of selected relevant files\\n\"\n        \"- Parsed content from those files\\n\"\n        \"- The user's question\\n\"\n        \"You must provide a precise, technically accurate answer.\\n\\n\"\n        \"Requirements:\\n\"\n        \"- Use the parsed files and global context as primary ground truth.\\n\"\n        \"- If the user asks about a function, variable, directory, or pipeline, \"\n        \"  focus on those elements specifically.\\n\"\n        \"- When describing locations, mention file names and (if available) roles \"\n        \"  or responsibilities of those files.\\n\"\n        \"- If information is not present in the provided context, say so explicitly \"\n        \"  instead of hallucinating.\\n\"\n    ))\n\n    human_msg = HumanMessage(content=f\"\"\"\n            User Query:\n            {user_query}\n\n            Detected Intent: {intent}\n            Keywords: {keywords}\n            Targets: {targets}\n\n            Global Repository Context:\n            {global_context}",
+          "raw_source": true
+        },
+        {
+          "path": "src/retrieval/ranker.py",
+          "start_line": 105,
+          "end_line": 135,
+          "text": "def rank_chunks(\n    query: str,\n    chunks: list[str],\n    top_k: int = 8,\n    mode: str | None = None,\n) -> list[str]:\n    \"\"\"\n    Return the *top_k* most relevant chunks for *query*.\n\n    Parameters\n    ----------\n    query:  The user's natural-language question.\n    chunks: Flat list of text chunks to rank.\n    top_k:  Maximum number of chunks to return.\n    mode:   ``\"lexical\"`` or ``\"semantic\"``.  Defaults to ``RETRIEVAL_MODE``\n            from settings.\n\n    Returns\n    -------\n    Ordered list of the most relevant chunks (best first).\n    \"\"\"\n    if not chunks:\n        return []\n    if len(chunks) <= top_k:\n        return chunks  # nothing to rank\n\n    effective_mode = (mode or RETRIEVAL_MODE or \"lexical\").lower()\n\n    if effective_mode == \"semantic\":\n        return _semantic_rank(query, chunks, top_k)\n    return _lexical_rank(query, chunks, top_k)",
+          "raw_source": true
+        },
+        {
+          "path": "src/github_repo_parser.py",
+          "start_line": 99,
+          "end_line": 153,
+          "text": "    def get_dir_tree(self, repo_url: str, branch: str | None = None, refresh: bool = False) -> dict:\n        \"\"\"\n        Returns nested tree structure of repository using the Contents API.\n\n        Parameters\n        ----------\n        repo_url: Full GitHub HTTPS URL, e.g. https://github.com/owner/repo\n        branch:   Branch to analyse; None means auto-detect the default branch.\n        refresh:  When True, bypass the on-disk cache and re-fetch.\n        \"\"\"\n        repo_name = self._get_repo_name(repo_url)\n        owner, repo = repo_name.split(\"/\")\n        branch = branch or self._get_default_branch(owner, repo)\n\n        # Cache key includes branch so different branches stay separate\n        cache_url = f\"tree::{owner}/{repo}@{branch}\"\n\n        if not refresh:\n            cached = cache_load_json(cache_url)\n            if cached is not None:\n                print(f\"\\n[cache] Loaded repo tree for {repo_name}@{branch} from disk.\")\n                return cached\n\n        all_files = self._fetch_recursive(owner, repo, \"\", branch)\n        metadata: dict = {}\n\n        for f in all_files:\n            path = f[\"path\"]\n            ext = self._get_extension(path)\n\n            if self._is_excluded(path):\n                continue\n\n            meta = {\n                \"path\": path,\n                \"type\": \"file\",\n                \"ext\": ext,\n                \"size_kb\": round(f.get(\"size\", 0) / 1024, 2),\n                \"url\": f\"{self.raw_api}{owner}/{repo}/{branch}/{path}\"\n            }\n\n            # Build nested metadata tree\n            parts = path.split(\"/\")\n            cursor = metadata\n            for folder in parts[:-1]:\n                folder_key = folder + \"/\"\n                cursor = cursor.setdefault(folder_key, {})\n\n            cursor[parts[-1]] = meta\n\n        # Persist to cache\n        cache_save_json(cache_url, metadata)\n\n        print(f\"\\n\\nRepository metadata tree created {len(all_files)} total items.\")\n        return metadata",
+          "raw_source": true
+        },
+        {
+          "path": "src/retrieval/__init__.py",
+          "start_line": 1,
+          "end_line": 3,
+          "text": "# src/retrieval/__init__.py\nfrom src.retrieval.chunker import chunk_text          # noqa: F401\nfrom src.retrieval.ranker import rank_chunks          # noqa: F401",
+          "raw_source": true
+        },
+        {
+          "path": "src/retrieval/ranker.py",
+          "start_line": 1,
+          "end_line": 36,
+          "text": "\"\"\"\nsrc/retrieval/ranker.py\n=======================\nRanks text chunks by relevance to a query.\n\nTwo modes\n---------\n* **lexical** (default, always available):\n  TF-IDF-weighted cosine similarity using only stdlib ``math`` and\n  ``collections``.\n\n* **semantic** (optional):\n  Uses ``sentence-transformers`` if it is installed; gracefully falls\n  back to lexical mode if the import fails or the model cannot load.\n\nThe active mode can be forced via ``RETRIEVAL_MODE`` in the environment\n(\"lexical\" | \"semantic\").\n\"\"\"\n\nfrom __future__ import annotations\n\nimport math\nimport re\nfrom collections import Counter\nfrom typing import TYPE_CHECKING\n\nfrom src.config.settings import RETRIEVAL_MODE\n\nif TYPE_CHECKING:  # pragma: no cover\n    pass\n\n\n# ---------------------------------------------------------------------------\n# Internal helpers \u2013 lexical\n# ---------------------------------------------------------------------------\n",
+          "raw_source": true
+        },
+        {
+          "path": "src/nodes/summarize_repo_node.py",
+          "start_line": 1,
+          "end_line": 6,
+          "text": "# nodes/summarize_repo_node.py\nfrom langchain_core.messages import SystemMessage, HumanMessage, AIMessage\nfrom src.config.settings import MAX_CHUNKS, TOP_K, RETRIEVAL_MODE\nfrom src.retrieval.chunker import chunk_text\nfrom src.retrieval.ranker import rank_chunks\n",
+          "raw_source": true
+        }
+      ],
+      "metrics": {
+        "retrieval_ms": 18.656,
+        "generation_ms": 46671.746,
+        "context_chars": 13032,
+        "retrieved_chunks": 8,
+        "citation_check": {
+          "status": "valid",
+          "checked": 7,
+          "invalid": []
+        },
+        "abstained": false,
+        "answer_protocol": "source_ids_v1",
+        "quote_check": {
+          "status": "not_applicable",
+          "quotes_checked": 0
+        },
+        "inference": {
+          "model": "qwen2.5-coder:3b",
+          "created_at": "2026-09-15T16:44:49.9339073Z",
+          "done": true,
+          "done_reason": "stop",
+          "total_duration": 46644525300,
+          "load_duration": 2121000,
+          "prompt_eval_count": 3223,
+          "prompt_eval_duration": 41705967000,
+          "eval_count": 68,
+          "eval_duration": 4887329000,
+          "inference_attempts": 1,
+          "retry_count": 0,
+          "request_elapsed_ms": 46671.249,
+          "http_status": 200,
+          "termination_reason": "stop"
+        },
+        "inference_attempts": 1,
+        "termination_reason": "stop",
+        "retrieval_mode": "code",
+        "generated": true,
+        "total_call_ms": 46690.248,
+        "outcome": "answered"
+      },
+      "model_output": "{\n  \"answer\": \"The default text chunk size is 400 and the overlap is 50.\",\n  \"source_ids\": [\"S1\", \"S6\", \"S8\", \"S3\", \"S4\", \"S5\", \"S7\"],\n  \"insufficient_evidence\": false\n}",
+      "status": "completed",
+      "outcome": "answered",
+      "score": null,
+      "reviewer_reason": ""
+    },
+    {
+      "id": "q23",
+      "question": "Which formula computes inverse document frequency?",
+      "reference_answer": "log((document count + 1)/(documents containing the term + 1)) + 1.",
+      "answer": "The formula that computes inverse document frequency is _idf(term: str, corpus: list[list[str]]) -> float: containing = sum(1 for doc in corpus if term in doc) return math.log((len(corpus) + 1) / (containing + 1)) + 1.0\n\nSources: [src/retrieval/ranker.py:L47-L49]",
+      "sources": [
+        {
+          "path": "src/retrieval/ranker.py",
+          "start_line": 52,
+          "end_line": 54,
+          "text": "def _tfidf_vector(tokens: list[str], corpus: list[list[str]]) -> dict[str, float]:\n    tf = _tf(tokens)\n    return {t: score * _idf(t, corpus) for t, score in tf.items()}",
+          "raw_source": true
+        },
+        {
+          "path": "src/retrieval/ranker.py",
+          "start_line": 47,
+          "end_line": 49,
+          "text": "def _idf(term: str, corpus: list[list[str]]) -> float:\n    containing = sum(1 for doc in corpus if term in doc)\n    return math.log((len(corpus) + 1) / (containing + 1)) + 1.0",
+          "raw_source": true
+        },
+        {
+          "path": ".github/workflows/ci.yml",
+          "start_line": 1,
+          "end_line": 38,
+          "text": "name: CI\n\non:\n  push:\n  pull_request:\n\njobs:\n  test:\n    name: Compile & Test (Python ${{ matrix.python-version }})\n    runs-on: ubuntu-latest\n    strategy:\n      fail-fast: false\n      matrix:\n        python-version: [\"3.11\", \"3.12\"]\n\n    steps:\n      - uses: actions/checkout@v4\n\n      - uses: actions/setup-python@v5\n        with:\n          python-version: ${{ matrix.python-version }}\n          cache: pip\n\n      - name: Install dependencies\n        run: |\n          python -m pip install --upgrade pip\n          pip install -r requirements-dev.txt\n\n      - name: Compile (syntax check)\n        run: python -m compileall -q .\n\n      - name: Unit tests\n        env:\n          TQDM_DISABLE: \"1\"\n        run: python -m pytest tests/ -v --tb=short\n\n      - name: Smoke test (no network / no API key)\n        run: python run_cli.py --smoke-test",
+          "raw_source": true
+        },
+        {
+          "path": "src/retrieval/ranker.py",
+          "start_line": 1,
+          "end_line": 36,
+          "text": "\"\"\"\nsrc/retrieval/ranker.py\n=======================\nRanks text chunks by relevance to a query.\n\nTwo modes\n---------\n* **lexical** (default, always available):\n  TF-IDF-weighted cosine similarity using only stdlib ``math`` and\n  ``collections``.\n\n* **semantic** (optional):\n  Uses ``sentence-transformers`` if it is installed; gracefully falls\n  back to lexical mode if the import fails or the model cannot load.\n\nThe active mode can be forced via ``RETRIEVAL_MODE`` in the environment\n(\"lexical\" | \"semantic\").\n\"\"\"\n\nfrom __future__ import annotations\n\nimport math\nimport re\nfrom collections import Counter\nfrom typing import TYPE_CHECKING\n\nfrom src.config.settings import RETRIEVAL_MODE\n\nif TYPE_CHECKING:  # pragma: no cover\n    pass\n\n\n# ---------------------------------------------------------------------------\n# Internal helpers \u2013 lexical\n# ---------------------------------------------------------------------------\n",
+          "raw_source": true
+        },
+        {
+          "path": "src/nodes/fetch_and_parse_node.py",
+          "start_line": 1,
+          "end_line": 40,
+          "text": "\"\"\"\nsrc/nodes/fetch_and_parse_node.py\n===================================\nFetches file content for *selected_files* and parses each one using the\nappropriate parser tool.\n\nConcurrency\n-----------\nFiles are fetched concurrently (up to ``MAX_CONCURRENT_FETCHES`` in\nparallel) using ``asyncio.to_thread`` so the blocking ``requests`` calls\ndo not stall the event loop.  Output order is deterministic (same order\nas *selected_files*).\n\nProgress\n--------\nA ``tqdm`` progress bar is shown on stderr during fetching.  It is\nautomatically suppressed when stderr is not a TTY (e.g. in CI or when\noutput is piped) or when the ``TQDM_DISABLE`` environment variable is set\nto ``\"1\"``.\n\"\"\"\n\nfrom __future__ import annotations\n\nimport asyncio\nimport os\nfrom typing import Optional\n\nfrom langchain_core.messages import SystemMessage\n\nfrom src.tools.parse_python   import parse_python\nfrom src.tools.parse_markdown  import parse_markdown\nfrom src.tools.parse_notebook  import parse_notebook\nfrom src.tools.parse_json_yaml import parse_json_yaml\nfrom src.utils.fetch_blob      import fetch_blob_content\nfrom src.utils.logger          import get_logger\nfrom src.config.settings       import MAX_CONCURRENT_FETCHES\n\nlog = get_logger(__name__)\n\n# \u2500\u2500 Parser registry \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500",
+          "raw_source": true
+        }
+      ],
+      "metrics": {
+        "retrieval_ms": 20.716,
+        "generation_ms": 15568.068,
+        "context_chars": 3610,
+        "retrieved_chunks": 5,
+        "citation_check": {
+          "status": "valid",
+          "checked": 1,
+          "invalid": []
+        },
+        "abstained": false,
+        "answer_protocol": "source_ids_v1",
+        "quote_check": {
+          "status": "not_applicable",
+          "quotes_checked": 0
+        },
+        "inference": {
+          "model": "qwen2.5-coder:3b",
+          "created_at": "2026-09-15T16:45:05.5384753Z",
+          "done": true,
+          "done_reason": "stop",
+          "total_duration": 15550879800,
+          "load_duration": 2100800,
+          "prompt_eval_count": 1014,
+          "prompt_eval_duration": 10544780000,
+          "eval_count": 89,
+          "eval_duration": 4959057000,
+          "inference_attempts": 1,
+          "retry_count": 0,
+          "request_elapsed_ms": 15567.645,
+          "http_status": 200,
+          "termination_reason": "stop"
+        },
+        "inference_attempts": 1,
+        "termination_reason": "stop",
+        "retrieval_mode": "code",
+        "generated": true,
+        "total_call_ms": 15588.666,
+        "outcome": "answered"
+      },
+      "model_output": "{\n  \"answer\": \"The formula that computes inverse document frequency is _idf(term: str, corpus: list[list[str]]) -> float: containing = sum(1 for doc in corpus if term in doc) return math.log((len(corpus) + 1) / (containing + 1)) + 1.0\",\n  \"source_ids\": [\"S2\"],\n  \"insufficient_evidence\": false\n}",
+      "status": "completed",
+      "outcome": "answered",
+      "score": null,
+      "reviewer_reason": ""
+    },
+    {
+      "id": "q28",
+      "question": "How are blocking downloads kept off the async event loop?",
+      "reference_answer": "Each synchronous blob download runs through asyncio.to_thread.",
+      "answer": "Blocking downloads are kept off the async event loop by using `asyncio.to_thread` in `fetch_blob_content` to run the blocking `requests.get` call in a separate thread.\n\nSources: [src/utils/fetch_blob.py:L16-L43]",
+      "sources": [
+        {
+          "path": "src/nodes/fetch_and_parse_node.py",
+          "start_line": 1,
+          "end_line": 40,
+          "text": "\"\"\"\nsrc/nodes/fetch_and_parse_node.py\n===================================\nFetches file content for *selected_files* and parses each one using the\nappropriate parser tool.\n\nConcurrency\n-----------\nFiles are fetched concurrently (up to ``MAX_CONCURRENT_FETCHES`` in\nparallel) using ``asyncio.to_thread`` so the blocking ``requests`` calls\ndo not stall the event loop.  Output order is deterministic (same order\nas *selected_files*).\n\nProgress\n--------\nA ``tqdm`` progress bar is shown on stderr during fetching.  It is\nautomatically suppressed when stderr is not a TTY (e.g. in CI or when\noutput is piped) or when the ``TQDM_DISABLE`` environment variable is set\nto ``\"1\"``.\n\"\"\"\n\nfrom __future__ import annotations\n\nimport asyncio\nimport os\nfrom typing import Optional\n\nfrom langchain_core.messages import SystemMessage\n\nfrom src.tools.parse_python   import parse_python\nfrom src.tools.parse_markdown  import parse_markdown\nfrom src.tools.parse_notebook  import parse_notebook\nfrom src.tools.parse_json_yaml import parse_json_yaml\nfrom src.utils.fetch_blob      import fetch_blob_content\nfrom src.utils.logger          import get_logger\nfrom src.config.settings       import MAX_CONCURRENT_FETCHES\n\nlog = get_logger(__name__)\n\n# \u2500\u2500 Parser registry \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500",
+          "raw_source": true
+        },
+        {
+          "path": "run_cli.py",
+          "start_line": 154,
+          "end_line": 183,
+          "text": "async def qa_loop(repo_state: Agent_State, args: argparse.Namespace) -> None:\n    \"\"\"Interactive multi-turn Q&A loop with optional per-turn report saving.\"\"\"\n    current_state = repo_state\n\n    while True:\n        try:\n            user_query = input(\"\\nYou (or 'exit' to quit): \\n\\n\").strip()\n        except (EOFError, KeyboardInterrupt):\n            print(\"\\nExiting.\")\n            break\n\n        if not user_query:\n            continue\n        if user_query.lower() in {\"exit\", \"quit\"}:\n            print(\"\\nGOODBYE...\")\n            break\n\n        current_state = await qa(current_state, user_query, top_k=args.top_k)\n        summary = current_state.get(\"summary\") or \"(No answer generated.)\"\n        print(\"\\nAgent:\\n\")\n        print(summary)\n\n        # Save a report for each interactive answer unless suppressed\n        _try_save_report(\n            repo_url=args.repo_url,\n            question=user_query,\n            state=current_state,\n            branch=args.branch,\n            no_report=args.no_report,\n        )",
+          "raw_source": true
+        },
+        {
+          "path": "src/utils/fetch_blob.py",
+          "start_line": 16,
+          "end_line": 43,
+          "text": "def fetch_blob_content(blob_url: str, refresh: bool = False) -> str:\n    \"\"\"\n    Fetch the text content at *blob_url*.\n\n    Parameters\n    ----------\n    blob_url: The raw GitHub URL to download.\n    refresh:  When ``True``, bypass the on-disk cache and re-download.\n\n    Returns\n    -------\n    Decoded text (``str``), or an empty string on failure.\n    \"\"\"\n    if not refresh:\n        cached = cache_load(blob_url)\n        if cached is not None:\n            return cached\n\n    try:\n        response = requests.get(blob_url, timeout=30)\n        response.raise_for_status()\n        data = response.text\n        cache_save(blob_url, data)\n        return data\n\n    except Exception as e:  # noqa: BLE001\n        print(f\"Error fetching blob content from {blob_url}: {e}\")\n        return \"\"",
+          "raw_source": true
+        },
+        {
+          "path": "src/nodes/analyze_repo_node.py",
+          "start_line": 33,
+          "end_line": 44,
+          "text": "    \".css\", \".js\",        # only if not caught by SKIP_PATTERNS first\n    \".html\", \".htm\",      # kept out by default unless query-matched\n    \".svg\", \".ico\", \".woff\", \".woff2\", \".ttf\", \".eot\", \".otf\",\n    \".png\", \".jpg\", \".jpeg\", \".gif\", \".bmp\", \".webp\",\n    \".zip\", \".tar\", \".gz\", \".rar\",\n    \".lock\",              # package-lock.json, yarn.lock etc.\n}\n\n# Extensions whose content is worth parsing (override _SKIP_EXTENSIONS)\n_KEEP_EXTENSIONS = set(IMPORTANT_EXT)\n\n",
+          "raw_source": true
+        },
+        {
+          "path": "run_cli.py",
+          "start_line": 127,
+          "end_line": 151,
+          "text": "async def qa(\n    repo_state: Agent_State,\n    question: str,\n    top_k: int | None = None,\n) -> Agent_State:\n    \"\"\"Run one Q&A turn and return the updated state.\"\"\"\n    state: Agent_State = {\n        **repo_state,\n        \"messages\": [HumanMessage(content=question)],\n        \"intent\": \"\",\n        \"keywords\": [],\n        \"targets\": {},\n        \"selected_files\": [],\n        \"unselected_files\": [],\n        \"summary\": \"\",\n    }\n\n    if top_k is not None:\n        state[\"top_k\"] = top_k  # type: ignore[typeddict-unknown-key]\n\n    async for step in qa_app.astream(state):\n        _, delta = list(step.items())[0]\n        state.update(delta)\n\n    return state",
+          "raw_source": true
+        },
+        {
+          "path": "run_cli.py",
+          "start_line": 92,
+          "end_line": 124,
+          "text": "async def load_repo(\n    repo_url: str,\n    branch: str | None = None,\n    refresh_cache: bool = False,\n    top_k: int | None = None,\n) -> Agent_State:\n    \"\"\"Index a GitHub repository and return the populated agent state.\"\"\"\n    state: Agent_State = {\n        \"messages\": [],\n        \"url\": repo_url,\n        \"branch\": branch,\n        \"refresh_cache\": refresh_cache,\n        \"repo_tree\": {},\n        \"global_context\": None,\n        \"selected_files\": [],\n        \"unselected_files\": [],\n        \"parsed_files\": [],\n        \"intent\": \"\",\n        \"keywords\": [],\n        \"targets\": {},\n        \"summary\": [],\n        \"llm\": _get_llm(),\n    }\n\n    if top_k is not None:\n        state[\"top_k\"] = top_k  # type: ignore[typeddict-unknown-key]\n\n    async for step in index_app.astream(state):\n        _, delta = list(step.items())[0]\n        state.update(delta)\n\n    print(\"\\nFinished Indexing Repository.\\n\")\n    return state",
+          "raw_source": true
+        },
+        {
+          "path": "src/nodes/analyze_repo_node.py",
+          "start_line": 1,
+          "end_line": 40,
+          "text": "\"\"\"\nsrc/nodes/analyze_repo_node.py\n================================\nQuery-aware file selection node with smart ranking and hard caps.\n\nSelection pipeline\n------------------\n1. Skip minified files (*.min.js, *.min.css, *.map, \u2026)\n2. Skip files that exceed MAX_SIZE_KB\n3. Score every remaining file by relevance to the query\n4. Sort by score descending, keep top MAX_SELECTED_FILES\n\"\"\"\n\nfrom __future__ import annotations\n\nimport re\nfrom langchain_core.messages import SystemMessage, HumanMessage\n\nfrom src.utils.flatten_tree import flatten_tree\nfrom src.utils.logger import get_logger\nfrom src.config.settings import (\n    IMPORTANT_EXT,\n    IMPORTANT_NAMES,\n    MAX_SELECTED_FILES,\n    MAX_SIZE_KB,\n    SKIP_PATTERNS,\n)\n\nlog = get_logger(__name__)\n\n# \u2500\u2500 Static/binary extensions that carry no semantic value \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\n_SKIP_EXTENSIONS = {\n    \".css\", \".js\",        # only if not caught by SKIP_PATTERNS first\n    \".html\", \".htm\",      # kept out by default unless query-matched\n    \".svg\", \".ico\", \".woff\", \".woff2\", \".ttf\", \".eot\", \".otf\",\n    \".png\", \".jpg\", \".jpeg\", \".gif\", \".bmp\", \".webp\",\n    \".zip\", \".tar\", \".gz\", \".rar\",\n    \".lock\",              # package-lock.json, yarn.lock etc.\n}\n",
+          "raw_source": true
+        },
+        {
+          "path": "src/nodes/fetch_and_parse_node.py",
+          "start_line": 89,
+          "end_line": 120,
+          "text": "async def _fetch_one(\n    file_meta: dict,\n    refresh: bool,\n    semaphore: asyncio.Semaphore,\n    progress_callback,\n) -> Optional[dict]:\n    \"\"\"\n    Fetch and parse a single file.\n\n    Returns a parsed-file dict, or None if the file should be skipped\n    (already parsed or fetch failed).\n    \"\"\"\n    path = file_meta.get(\"path\", \"\")\n    url  = file_meta.get(\"url\", \"\")\n    ext  = file_meta.get(\"ext\", \"\").lower()\n\n    if not path or not url:\n        progress_callback()\n        return None\n\n    async with semaphore:\n        log.debug(\"Fetching %s\", path)\n        raw = await asyncio.to_thread(fetch_blob_content, url, refresh)\n\n    progress_callback()\n\n    if not raw:\n        log.warning(\"Empty content for %s\", path)\n        return {\"path\": path, \"ext\": ext, \"parsed\": f\"<Failed to fetch {path}>\"}\n\n    parsed = _parse(raw, ext, path)\n    return {\"path\": path, \"ext\": ext, \"parsed\": parsed}",
+          "raw_source": true
+        }
+      ],
+      "metrics": {
+        "retrieval_ms": 23.66,
+        "generation_ms": 28042.858,
+        "context_chars": 7559,
+        "retrieved_chunks": 8,
+        "citation_check": {
+          "status": "valid",
+          "checked": 1,
+          "invalid": []
+        },
+        "abstained": false,
+        "answer_protocol": "source_ids_v1",
+        "quote_check": {
+          "status": "not_applicable",
+          "quotes_checked": 0
+        },
+        "inference": {
+          "model": "qwen2.5-coder:3b",
+          "created_at": "2026-09-15T16:45:33.6001749Z",
+          "done": true,
+          "done_reason": "stop",
+          "total_duration": 28015335200,
+          "load_duration": 2139300,
+          "prompt_eval_count": 2003,
+          "prompt_eval_duration": 24095218000,
+          "eval_count": 63,
+          "eval_duration": 3886254000,
+          "inference_attempts": 1,
+          "retry_count": 0,
+          "request_elapsed_ms": 28042.386,
+          "http_status": 200,
+          "termination_reason": "stop"
+        },
+        "inference_attempts": 1,
+        "termination_reason": "stop",
+        "retrieval_mode": "code",
+        "generated": true,
+        "total_call_ms": 28066.376,
+        "outcome": "answered"
+      },
+      "model_output": "{\n  \"answer\": \"Blocking downloads are kept off the async event loop by using `asyncio.to_thread` in `fetch_blob_content` to run the blocking `requests.get` call in a separate thread.\",\n  \"source_ids\": [\"S3\"],\n  \"insufficient_evidence\": false\n}",
+      "status": "completed",
+      "outcome": "answered",
+      "score": null,
+      "reviewer_reason": ""
+    },
+    {
+      "id": "q32",
+      "question": "How much text is kept for an unknown file extension?",
+      "reference_answer": "The first 5000 characters.",
+      "answer": "5000\n\nSources: [src/nodes/fetch_and_parse_node.py:L74-L86]",
+      "sources": [
+        {
+          "path": "src/nodes/analyze_repo_node.py",
+          "start_line": 33,
+          "end_line": 44,
+          "text": "    \".css\", \".js\",        # only if not caught by SKIP_PATTERNS first\n    \".html\", \".htm\",      # kept out by default unless query-matched\n    \".svg\", \".ico\", \".woff\", \".woff2\", \".ttf\", \".eot\", \".otf\",\n    \".png\", \".jpg\", \".jpeg\", \".gif\", \".bmp\", \".webp\",\n    \".zip\", \".tar\", \".gz\", \".rar\",\n    \".lock\",              # package-lock.json, yarn.lock etc.\n}\n\n# Extensions whose content is worth parsing (override _SKIP_EXTENSIONS)\n_KEEP_EXTENSIONS = set(IMPORTANT_EXT)\n\n",
+          "raw_source": true
+        },
+        {
+          "path": "src/nodes/analyze_repo_node.py",
+          "start_line": 1,
+          "end_line": 40,
+          "text": "\"\"\"\nsrc/nodes/analyze_repo_node.py\n================================\nQuery-aware file selection node with smart ranking and hard caps.\n\nSelection pipeline\n------------------\n1. Skip minified files (*.min.js, *.min.css, *.map, \u2026)\n2. Skip files that exceed MAX_SIZE_KB\n3. Score every remaining file by relevance to the query\n4. Sort by score descending, keep top MAX_SELECTED_FILES\n\"\"\"\n\nfrom __future__ import annotations\n\nimport re\nfrom langchain_core.messages import SystemMessage, HumanMessage\n\nfrom src.utils.flatten_tree import flatten_tree\nfrom src.utils.logger import get_logger\nfrom src.config.settings import (\n    IMPORTANT_EXT,\n    IMPORTANT_NAMES,\n    MAX_SELECTED_FILES,\n    MAX_SIZE_KB,\n    SKIP_PATTERNS,\n)\n\nlog = get_logger(__name__)\n\n# \u2500\u2500 Static/binary extensions that carry no semantic value \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\n_SKIP_EXTENSIONS = {\n    \".css\", \".js\",        # only if not caught by SKIP_PATTERNS first\n    \".html\", \".htm\",      # kept out by default unless query-matched\n    \".svg\", \".ico\", \".woff\", \".woff2\", \".ttf\", \".eot\", \".otf\",\n    \".png\", \".jpg\", \".jpeg\", \".gif\", \".bmp\", \".webp\",\n    \".zip\", \".tar\", \".gz\", \".rar\",\n    \".lock\",              # package-lock.json, yarn.lock etc.\n}\n",
+          "raw_source": true
+        },
+        {
+          "path": "src/nodes/summarize_repo_node.py",
+          "start_line": 7,
+          "end_line": 106,
+          "text": "async def summarize_repo_node(state: dict) -> dict:\n    \"\"\"\n    Final summarization node.\n\n    1. Splits each parsed file's text into overlapping word-level chunks.\n    2. Ranks all chunks by relevance to the user query (lexical by default;\n       semantic if sentence-transformers is available and RETRIEVAL_MODE=semantic).\n    3. Feeds only the top-k most relevant chunks to the LLM, reducing token\n       usage while improving answer quality.\n    \"\"\"\n\n    llm = state.get(\"llm\")\n    global_context = state.get(\"global_context\", \"\")\n    parsed_files = state.get(\"parsed_files\", [])\n    intent = state.get(\"intent\")\n    keywords = state.get(\"keywords\", [])\n    targets = state.get(\"targets\", {})\n    selected_files = state.get(\"selected_files\", [])\n\n    # Allow per-run override via state (set by CLI --top-k flag)\n    top_k: int = state.get(\"top_k\") or TOP_K\n\n    if not llm:\n        return {\"messages\": state.get(\"messages\", []) + [\n            SystemMessage(content=\"LLM not found in state, cannot summarize.\")\n        ]}\n\n    user_query = \"\"\n    for msg in reversed(state.get(\"messages\", [])):\n        if isinstance(msg, HumanMessage):\n            user_query = msg.content\n            break\n\n    if not user_query:\n        user_query = \"Provide a summary of this repository.\"\n\n    selected_paths = [f.get(\"path\") for f in selected_files if isinstance(f, dict)]\n\n    # ------------------------------------------------------------------\n    # Build all chunks from parsed files\n    # ------------------------------------------------------------------\n    all_chunks: list[str] = []\n    chunk_labels: list[str] = []  # tracks which file each chunk came from\n\n    for f in parsed_files:\n        path = f.get(\"path\", \"<unknown>\")\n        parsed_text = f.get(\"parsed\", \"\")\n        if not parsed_text:\n            continue\n        file_chunks = chunk_text(parsed_text)\n        for i, c in enumerate(file_chunks):\n            all_chunks.append(c)\n            chunk_labels.append(f\"### File: {path} (chunk {i + 1})\\n\")\n\n    # ------------------------------------------------------------------\n    # Rank and select top-k\n    # ------------------------------------------------------------------\n    if all_chunks:\n        ranked_chunks = rank_chunks(user_query, all_chunks, top_k=top_k)\n        print(\n            f\"[retrieval] {len(all_chunks)} total chunks -> \"\n            f\"top {len(ranked_chunks)} selected (mode={RETRIEVAL_MODE})\"\n        )\n        merged_text = \"\\n\".join(ranked_chunks)\n    else:\n        # Fallback: truncated raw merge (original behaviour)\n        merged_chunks = [\n            f\"\\n### File: {f.get('path', '<unknown>')}\\n{f.get('parsed', '')}\\n\"\n            for f in parsed_files\n        ]\n        merged_text = \"\\n\".join(merged_chunks[:MAX_CHUNKS])\n\n    system_msg = SystemMessage(content=(\n        \"You are an expert software engineer and code analysis assistant. \"\n        \"You receive:\\n\"\n        \"- A high-level repository context\\n\"\n        \"- A list of selected relevant files\\n\"\n        \"- Parsed content from those files\\n\"\n        \"- The user's question\\n\"\n        \"You must provide a precise, technically accurate answer.\\n\\n\"\n        \"Requirements:\\n\"\n        \"- Use the parsed files and global context as primary ground truth.\\n\"\n        \"- If the user asks about a function, variable, directory, or pipeline, \"\n        \"  focus on those elements specifically.\\n\"\n        \"- When describing locations, mention file names and (if available) roles \"\n        \"  or responsibilities of those files.\\n\"\n        \"- If information is not present in the provided context, say so explicitly \"\n        \"  instead of hallucinating.\\n\"\n    ))\n\n    human_msg = HumanMessage(content=f\"\"\"\n            User Query:\n            {user_query}\n\n            Detected Intent: {intent}\n            Keywords: {keywords}\n            Targets: {targets}\n\n            Global Repository Context:\n            {global_context}",
+          "raw_source": true
+        },
+        {
+          "path": "src/nodes/analyze_repo_node.py",
+          "start_line": 45,
+          "end_line": 54,
+          "text": "def _is_skippable(path: str, ext: str) -> bool:\n    \"\"\"Return True if this file should never be selected.\"\"\"\n    lp = path.lower()\n    # 1. Minified / source-map patterns\n    if any(lp.endswith(pat) for pat in SKIP_PATTERNS):\n        return True\n    # 2. Binary / static-asset extensions that aren't in KEEP list\n    if ext in _SKIP_EXTENSIONS and ext not in _KEEP_EXTENSIONS:\n        return True\n    return False",
+          "raw_source": true
+        },
+        {
+          "path": "src/nodes/fetch_and_parse_node.py",
+          "start_line": 74,
+          "end_line": 86,
+          "text": "def _parse(raw: str, ext: str, path: str) -> str:\n    \"\"\"Run the appropriate parser; fall back to raw truncation on error.\"\"\"\n    parser_fn = PARSERS.get(ext)\n    if parser_fn:\n        try:\n            result = parser_fn(raw)\n            log.debug(\"Parsed %s with %s parser.\", path, ext)\n            return result\n        except Exception as exc:  # noqa: BLE001\n            log.warning(\"Parser error for %s: %s\", path, exc)\n            return f\"<Error parsing {path}: {exc}>\"\n    # Unknown extension \u2014 safe truncation\n    return raw[:5000]",
+          "raw_source": true
+        },
+        {
+          "path": "src/report/writer.py",
+          "start_line": 17,
+          "end_line": 86,
+          "text": "def write_report(\n    repo_url: str,\n    question: str,\n    selected_files: list[dict],\n    answer: str,\n    branch: str | None = None,\n) -> Path:\n    \"\"\"\n    Persist a Q&A report to ``reports/report_<timestamp>.md``.\n\n    Parameters\n    ----------\n    repo_url:       The analysed GitHub repository URL.\n    question:       The user's question.\n    selected_files: List of file-metadata dicts chosen by the agent.\n    answer:         The LLM-generated answer.\n    branch:         Git branch that was analysed (``None`` \u2192 \"default\").\n\n    Returns\n    -------\n    The :class:`~pathlib.Path` of the written report file.\n    \"\"\"\n    _REPORT_DIR.mkdir(parents=True, exist_ok=True)\n\n    timestamp = datetime.now(tz=timezone.utc)\n    filename = f\"report_{timestamp.strftime('%Y%m%dT%H%M%SZ')}.md\"\n    report_path = _REPORT_DIR / filename\n\n    # Build selected-files list\n    file_lines = \"\\n\".join(\n        f\"- `{f.get('path', '<unknown>')}`\"\n        for f in (selected_files or [])\n    ) or \"_No files selected._\"\n\n    branch_display = branch or \"default\"\n\n    content = f\"\"\"\\\n# GitHub Code-Analyser Report\n\n| Field | Value |\n|---|---|\n| **Repository** | {repo_url} |\n| **Branch** | `{branch_display}` |\n| **Generated** | {timestamp.strftime('%Y-%m-%d %H:%M:%S UTC')} |\n\n---\n\n## Question\n\n> {question}\n\n---\n\n## Files Analysed\n\n{file_lines}\n\n---\n\n## Answer\n\n{answer}\n\n---\n\n_Generated by [GitHub Code-Analyser Agent](https://github.com)_\n\"\"\"\n\n    report_path.write_text(content, encoding=\"utf-8\")\n    return report_path",
+          "raw_source": true
+        },
+        {
+          "path": "src/config/settings.py",
+          "start_line": 33,
+          "end_line": 57,
+          "text": "\n# \u2500\u2500 Patterns to always skip \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\n# Minified files, source-maps, and other non-semantic assets\nSKIP_PATTERNS = [\n    \".min.js\", \".min.css\", \".css.map\", \".js.map\",\n    \"-min.js\", \"-min.css\",\n    \".bundle.js\", \".chunk.js\",\n]\n\n# Extensions excluded from the tree entirely\nEXCLUDE_EXT = [\n    \".gif\", \".jpg\", \".jpeg\", \".png\", \".mp4\", \".svg\", \".ico\",\n    \".woff\", \".woff2\", \".ttf\", \".eot\", \".otf\",   # fonts\n    \".pdf\", \".zip\", \".tar\", \".gz\",\n    \".gitignore\", \".git\", \".vscode\", \".docker\",\n    \".docstr\", \".docstr.yaml\", \".github\",\n]\n\n# Extensions worth parsing deeply\nIMPORTANT_EXT = [\".py\", \".ipynb\", \".md\", \".json\", \".yaml\", \".toml\", \".txt\"]\n\n# File-name fragments that are always high-priority\nIMPORTANT_NAMES = [\"readme\", \"setup\", \"main\", \"__init__\", \"app\", \"model\", \"config\", \"run\"]\n\n",
+          "raw_source": true
+        },
+        {
+          "path": "src/github_repo_parser.py",
+          "start_line": 33,
+          "end_line": 34,
+          "text": "    def _get_extension(self, name: str):\n        return os.path.splitext(name)[1] if \".\" in name else \"\"",
+          "raw_source": true
+        }
+      ],
+      "metrics": {
+        "retrieval_ms": 22.802,
+        "generation_ms": 31808.238,
+        "context_chars": 9338,
+        "retrieved_chunks": 8,
+        "citation_check": {
+          "status": "valid",
+          "checked": 1,
+          "invalid": []
+        },
+        "abstained": false,
+        "answer_protocol": "source_ids_v1",
+        "quote_check": {
+          "status": "not_applicable",
+          "quotes_checked": 0
+        },
+        "inference": {
+          "model": "qwen2.5-coder:3b",
+          "created_at": "2026-09-15T16:46:05.4364322Z",
+          "done": true,
+          "done_reason": "stop",
+          "total_duration": 31781368400,
+          "load_duration": 2629700,
+          "prompt_eval_count": 2471,
+          "prompt_eval_duration": 29767256000,
+          "eval_count": 31,
+          "eval_duration": 1973051000,
+          "inference_attempts": 1,
+          "retry_count": 0,
+          "request_elapsed_ms": 31807.843,
+          "http_status": 200,
+          "termination_reason": "stop"
+        },
+        "inference_attempts": 1,
+        "termination_reason": "stop",
+        "retrieval_mode": "code",
+        "generated": true,
+        "total_call_ms": 31830.93,
+        "outcome": "answered"
+      },
+      "model_output": "{\n  \"answer\": \"5000\",\n  \"source_ids\": [\"S5\"],\n  \"insufficient_evidence\": false\n}",
+      "status": "completed",
+      "outcome": "answered",
+      "score": null,
+      "reviewer_reason": ""
+    },
+    {
+      "id": "q36",
+      "question": "How is the maximum number of selected files enforced?",
+      "reference_answer": "Candidates are sorted descending by score then sliced to MAX_SELECTED_FILES.",
+      "answer": "The maximum number of selected files is enforced in the `analyze_repo_node` function, which limits the selection to `MAX_SELECTED_FILES` using a relevance score. This is done by sorting the files based on their relevance to the user query and selecting the top-k most relevant files. The function uses the `rank_chunks` function to rank the chunks and then selects the top-k files based on their score.\n\nSources: [src/nodes/analyze_repo_node.py:L115-L211], [src/utils/summarize_state.py:L11-L23], [run_cli.py:L64-L85]",
+      "sources": [
+        {
+          "path": "src/retrieval/chunker.py",
+          "start_line": 11,
+          "end_line": 47,
+          "text": "def chunk_text(\n    text: str,\n    chunk_size: int = 400,\n    overlap: int = 50,\n) -> list[str]:\n    \"\"\"\n    Split *text* into overlapping word-level chunks.\n\n    Parameters\n    ----------\n    text:       The source text to split.\n    chunk_size: Maximum number of words per chunk.\n    overlap:    Number of words shared between consecutive chunks.\n\n    Returns\n    -------\n    A list of string chunks.  Returns ``[\"\"]`` if *text* is empty.\n    \"\"\"\n    if not text or not text.strip():\n        return [\"\"]\n\n    words = text.split()\n    if not words:\n        return [\"\"]\n\n    chunks: list[str] = []\n    step = max(1, chunk_size - overlap)\n    start = 0\n\n    while start < len(words):\n        end = min(start + chunk_size, len(words))\n        chunks.append(\" \".join(words[start:end]))\n        if end == len(words):\n            break\n        start += step\n\n    return chunks if chunks else [\"\"]",
+          "raw_source": true
+        },
+        {
+          "path": "src/retrieval/ranker.py",
+          "start_line": 105,
+          "end_line": 135,
+          "text": "def rank_chunks(\n    query: str,\n    chunks: list[str],\n    top_k: int = 8,\n    mode: str | None = None,\n) -> list[str]:\n    \"\"\"\n    Return the *top_k* most relevant chunks for *query*.\n\n    Parameters\n    ----------\n    query:  The user's natural-language question.\n    chunks: Flat list of text chunks to rank.\n    top_k:  Maximum number of chunks to return.\n    mode:   ``\"lexical\"`` or ``\"semantic\"``.  Defaults to ``RETRIEVAL_MODE``\n            from settings.\n\n    Returns\n    -------\n    Ordered list of the most relevant chunks (best first).\n    \"\"\"\n    if not chunks:\n        return []\n    if len(chunks) <= top_k:\n        return chunks  # nothing to rank\n\n    effective_mode = (mode or RETRIEVAL_MODE or \"lexical\").lower()\n\n    if effective_mode == \"semantic\":\n        return _semantic_rank(query, chunks, top_k)\n    return _lexical_rank(query, chunks, top_k)",
+          "raw_source": true
+        },
+        {
+          "path": "src/nodes/analyze_repo_node.py",
+          "start_line": 115,
+          "end_line": 211,
+          "text": "async def analyze_tree_node(state: dict) -> dict:\n    \"\"\"\n    Query-aware Analyze Node.\n\n    Decides which files to parse deeply based on:\n      - user query intent, keywords, targets\n      - file importance (README, setup, main, config, \u2026)\n      - file extension (skip minified, binary, static assets)\n      - file size   (skip files > MAX_SIZE_KB)\n    Caps selection at MAX_SELECTED_FILES using a relevance score.\n    \"\"\"\n    repo_tree = state.get(\"repo_tree\")\n    intent    = state.get(\"intent\", \"\")\n    keywords  = state.get(\"keywords\", [])\n    targets   = state.get(\"targets\", {})\n\n    if not repo_tree:\n        return {\n            \"selected_files\": [],\n            \"unselected_files\": [],\n            \"messages\": state.get(\"messages\", []) + [\n                SystemMessage(content=\"No repository tree available.\")\n            ],\n        }\n\n    flattened = flatten_tree(repo_tree)\n\n    user_query = \"\"\n    for msg in reversed(state.get(\"messages\", [])):\n        if isinstance(msg, HumanMessage):\n            user_query = msg.content.lower()\n            break\n\n    query_keywords = re.findall(r\"[a-zA-Z_]+\", user_query)\n\n    # \u2500\u2500 Pass 1: hard filters \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\n    candidates: list[dict] = []\n    hard_skipped: list[str] = []\n\n    for meta in flattened:\n        path = meta[\"path\"]\n        ext  = meta.get(\"ext\", \"\").lower()\n        size = meta.get(\"size_kb\", 0)\n\n        # Skip minified / static-asset files\n        if _is_skippable(path, ext):\n            hard_skipped.append(f\"{path} [minified/asset]\")\n            log.debug(\"SKIP (asset)   %s\", path)\n            continue\n\n        # Skip oversized files\n        if size > MAX_SIZE_KB:\n            hard_skipped.append(f\"{path} [size {size} KB > {MAX_SIZE_KB} KB]\")\n            log.debug(\"SKIP (size)    %s  %.1f KB\", path, size)\n            continue\n\n        candidates.append(meta)\n\n    # \u2500\u2500 Pass 2: score and rank \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\n    scored = [\n        (_score(m, query_keywords, intent, keywords, targets), m)\n        for m in candidates\n    ]\n    scored.sort(key=lambda x: x[0], reverse=True)\n\n    # \u2500\u2500 Pass 3: apply cap \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\n    selected_scored = scored[:MAX_SELECTED_FILES]\n    overflow        = scored[MAX_SELECTED_FILES:]\n\n    selected   = [m for _, m in selected_scored]\n    unselected = (\n        hard_skipped                          # already strings\n        + [m[\"path\"] for _, m in overflow]   # paths of capped files\n    )\n\n    log.info(\n        \"File selection: %d candidates, %d selected (cap=%d), %d hard-skipped, %d capped\",\n        len(candidates), len(selected), MAX_SELECTED_FILES,\n        len(hard_skipped), len(overflow),\n    )\n    print(\n        f\"Selected {len(selected)}/{len(flattened)} files \"\n        f\"(cap={MAX_SELECTED_FILES}, skipped {len(hard_skipped)} asset/oversized).\"\n    )\n\n    return {\n        \"selected_files\": selected,\n        \"unselected_files\": unselected,\n        \"messages\": state.get(\"messages\", []) + [\n            SystemMessage(\n                content=(\n                    f\"Selected {len(selected)} files based on query \"\n                    f\"(capped at {MAX_SELECTED_FILES}).\"\n                )\n            )\n        ],\n    }",
+          "raw_source": true
+        },
+        {
+          "path": "src/nodes/fetch_and_parse_node.py",
+          "start_line": 125,
+          "end_line": 210,
+          "text": "async def fetch_and_parse_node(state: dict) -> dict:\n    \"\"\"\n    Fetch *selected_files* concurrently and parse each one.\n\n    - Up to ``MAX_CONCURRENT_FETCHES`` requests run in parallel.\n    - Files already present in ``parsed_files`` are skipped (cache hit).\n    - A tqdm progress bar is shown when running interactively.\n    - Output order mirrors the order of *selected_files*.\n    \"\"\"\n    selected_files: list[dict] = state.get(\"selected_files\", [])\n    refresh: bool = bool(state.get(\"refresh_cache\", False))\n\n    if not selected_files:\n        return {\n            \"parsed_files\": [],\n            \"messages\": state.get(\"messages\", []) + [\n                SystemMessage(content=\"No files selected for parsing.\")\n            ],\n        }\n\n    # Skip already-parsed files\n    existing_pf    = list(state.get(\"parsed_files\") or [])\n    already_parsed = {pf[\"path\"] for pf in existing_pf if \"path\" in pf}\n\n    to_fetch = [m for m in selected_files if m.get(\"path\") not in already_parsed]\n\n    if not to_fetch:\n        log.info(\"All %d selected files already parsed (cache hit).\", len(selected_files))\n        return {\n            \"parsed_files\": existing_pf,\n            \"messages\": state.get(\"messages\", []) + [\n                SystemMessage(content=\"All selected files already parsed.\")\n            ],\n        }\n\n    log.info(\n        \"Fetching %d files concurrently (max=%d, %d already cached).\",\n        len(to_fetch), MAX_CONCURRENT_FETCHES, len(already_parsed),\n    )\n\n    semaphore = asyncio.Semaphore(MAX_CONCURRENT_FETCHES)\n\n    # \u2500\u2500 Progress bar \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\n    pbar = _tqdm_bar(range(len(to_fetch)), total=len(to_fetch), desc=\"Fetching files\")\n    pbar_iter = iter(pbar) if hasattr(pbar, \"__iter__\") else iter(range(len(to_fetch)))\n\n    def _tick():\n        try:\n            next(pbar_iter)\n        except StopIteration:\n            pass\n        if hasattr(pbar, \"update\"):\n            pbar.update(1)\n\n    # \u2500\u2500 Launch all fetch tasks \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\n    tasks = [\n        _fetch_one(meta, refresh, semaphore, _tick)\n        for meta in to_fetch\n    ]\n    results = await asyncio.gather(*tasks, return_exceptions=True)\n\n    if hasattr(pbar, \"close\"):\n        pbar.close()\n\n    # \u2500\u2500 Collect results (preserve order) \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\n    new_pf: list[dict] = []\n    for meta, result in zip(to_fetch, results):\n        if isinstance(result, Exception):\n            log.error(\"Unhandled error fetching %s: %s\", meta.get(\"path\"), result)\n            new_pf.append({\n                \"path\": meta.get(\"path\", \"<unknown>\"),\n                \"ext\":  meta.get(\"ext\", \"\"),\n                \"parsed\": f\"<Fetch error: {result}>\",\n            })\n        elif result is not None:\n            new_pf.append(result)\n\n    all_pf = existing_pf + new_pf\n    print(f\"Fetched & parsed {len(new_pf)} files ({len(already_parsed)} from cache).\")\n\n    return {\n        \"parsed_files\": all_pf,\n        \"messages\": state.get(\"messages\", []) + [\n            SystemMessage(content=f\"Fetched & parsed {len(new_pf)} files.\")\n        ],\n    }",
+          "raw_source": true
+        },
+        {
+          "path": "src/report/writer.py",
+          "start_line": 17,
+          "end_line": 86,
+          "text": "def write_report(\n    repo_url: str,\n    question: str,\n    selected_files: list[dict],\n    answer: str,\n    branch: str | None = None,\n) -> Path:\n    \"\"\"\n    Persist a Q&A report to ``reports/report_<timestamp>.md``.\n\n    Parameters\n    ----------\n    repo_url:       The analysed GitHub repository URL.\n    question:       The user's question.\n    selected_files: List of file-metadata dicts chosen by the agent.\n    answer:         The LLM-generated answer.\n    branch:         Git branch that was analysed (``None`` \u2192 \"default\").\n\n    Returns\n    -------\n    The :class:`~pathlib.Path` of the written report file.\n    \"\"\"\n    _REPORT_DIR.mkdir(parents=True, exist_ok=True)\n\n    timestamp = datetime.now(tz=timezone.utc)\n    filename = f\"report_{timestamp.strftime('%Y%m%dT%H%M%SZ')}.md\"\n    report_path = _REPORT_DIR / filename\n\n    # Build selected-files list\n    file_lines = \"\\n\".join(\n        f\"- `{f.get('path', '<unknown>')}`\"\n        for f in (selected_files or [])\n    ) or \"_No files selected._\"\n\n    branch_display = branch or \"default\"\n\n    content = f\"\"\"\\\n# GitHub Code-Analyser Report\n\n| Field | Value |\n|---|---|\n| **Repository** | {repo_url} |\n| **Branch** | `{branch_display}` |\n| **Generated** | {timestamp.strftime('%Y-%m-%d %H:%M:%S UTC')} |\n\n---\n\n## Question\n\n> {question}\n\n---\n\n## Files Analysed\n\n{file_lines}\n\n---\n\n## Answer\n\n{answer}\n\n---\n\n_Generated by [GitHub Code-Analyser Agent](https://github.com)_\n\"\"\"\n\n    report_path.write_text(content, encoding=\"utf-8\")\n    return report_path",
+          "raw_source": true
+        },
+        {
+          "path": "src/utils/summarize_state.py",
+          "start_line": 11,
+          "end_line": 23,
+          "text": "\n#for debugging only\n#Ouptut:\n#{\n#   \"repo_tree\": \"<dict> keys=112, depth=4\",\n#   \"selected_files\": \"<list> len=13\",\n#   \"parsed_files\": \"<list> len=10\",\n#   \"messages\": \"<list> len=2\",\n#   \"intent\": \"function_usage\",\n#   \"keywords\": [\"preprocess\", \"usage\"],\n#   \"targets\": {\"function\": \"preprocess\"},\n#   ...\n# }",
+          "raw_source": true
+        },
+        {
+          "path": "src/nodes/summarize_repo_node.py",
+          "start_line": 7,
+          "end_line": 106,
+          "text": "async def summarize_repo_node(state: dict) -> dict:\n    \"\"\"\n    Final summarization node.\n\n    1. Splits each parsed file's text into overlapping word-level chunks.\n    2. Ranks all chunks by relevance to the user query (lexical by default;\n       semantic if sentence-transformers is available and RETRIEVAL_MODE=semantic).\n    3. Feeds only the top-k most relevant chunks to the LLM, reducing token\n       usage while improving answer quality.\n    \"\"\"\n\n    llm = state.get(\"llm\")\n    global_context = state.get(\"global_context\", \"\")\n    parsed_files = state.get(\"parsed_files\", [])\n    intent = state.get(\"intent\")\n    keywords = state.get(\"keywords\", [])\n    targets = state.get(\"targets\", {})\n    selected_files = state.get(\"selected_files\", [])\n\n    # Allow per-run override via state (set by CLI --top-k flag)\n    top_k: int = state.get(\"top_k\") or TOP_K\n\n    if not llm:\n        return {\"messages\": state.get(\"messages\", []) + [\n            SystemMessage(content=\"LLM not found in state, cannot summarize.\")\n        ]}\n\n    user_query = \"\"\n    for msg in reversed(state.get(\"messages\", [])):\n        if isinstance(msg, HumanMessage):\n            user_query = msg.content\n            break\n\n    if not user_query:\n        user_query = \"Provide a summary of this repository.\"\n\n    selected_paths = [f.get(\"path\") for f in selected_files if isinstance(f, dict)]\n\n    # ------------------------------------------------------------------\n    # Build all chunks from parsed files\n    # ------------------------------------------------------------------\n    all_chunks: list[str] = []\n    chunk_labels: list[str] = []  # tracks which file each chunk came from\n\n    for f in parsed_files:\n        path = f.get(\"path\", \"<unknown>\")\n        parsed_text = f.get(\"parsed\", \"\")\n        if not parsed_text:\n            continue\n        file_chunks = chunk_text(parsed_text)\n        for i, c in enumerate(file_chunks):\n            all_chunks.append(c)\n            chunk_labels.append(f\"### File: {path} (chunk {i + 1})\\n\")\n\n    # ------------------------------------------------------------------\n    # Rank and select top-k\n    # ------------------------------------------------------------------\n    if all_chunks:\n        ranked_chunks = rank_chunks(user_query, all_chunks, top_k=top_k)\n        print(\n            f\"[retrieval] {len(all_chunks)} total chunks -> \"\n            f\"top {len(ranked_chunks)} selected (mode={RETRIEVAL_MODE})\"\n        )\n        merged_text = \"\\n\".join(ranked_chunks)\n    else:\n        # Fallback: truncated raw merge (original behaviour)\n        merged_chunks = [\n            f\"\\n### File: {f.get('path', '<unknown>')}\\n{f.get('parsed', '')}\\n\"\n            for f in parsed_files\n        ]\n        merged_text = \"\\n\".join(merged_chunks[:MAX_CHUNKS])\n\n    system_msg = SystemMessage(content=(\n        \"You are an expert software engineer and code analysis assistant. \"\n        \"You receive:\\n\"\n        \"- A high-level repository context\\n\"\n        \"- A list of selected relevant files\\n\"\n        \"- Parsed content from those files\\n\"\n        \"- The user's question\\n\"\n        \"You must provide a precise, technically accurate answer.\\n\\n\"\n        \"Requirements:\\n\"\n        \"- Use the parsed files and global context as primary ground truth.\\n\"\n        \"- If the user asks about a function, variable, directory, or pipeline, \"\n        \"  focus on those elements specifically.\\n\"\n        \"- When describing locations, mention file names and (if available) roles \"\n        \"  or responsibilities of those files.\\n\"\n        \"- If information is not present in the provided context, say so explicitly \"\n        \"  instead of hallucinating.\\n\"\n    ))\n\n    human_msg = HumanMessage(content=f\"\"\"\n            User Query:\n            {user_query}\n\n            Detected Intent: {intent}\n            Keywords: {keywords}\n            Targets: {targets}\n\n            Global Repository Context:\n            {global_context}",
+          "raw_source": true
+        },
+        {
+          "path": "run_cli.py",
+          "start_line": 64,
+          "end_line": 85,
+          "text": "def _try_save_report(\n    repo_url: str,\n    question: str,\n    state: Agent_State,\n    branch: str | None,\n    no_report: bool,\n) -> None:\n    \"\"\"Save a Markdown report unless --no-report was given.\"\"\"\n    if no_report:\n        return\n    try:\n        from src.report.writer import write_report\n        report_path = write_report(\n            repo_url=repo_url,\n            question=question,\n            selected_files=state.get(\"selected_files\", []),\n            answer=state.get(\"summary\", \"\"),\n            branch=branch,\n        )\n        print(f\"\\nReport saved -> {report_path}\")\n    except Exception as exc:  # noqa: BLE001\n        print(f\"Warning: could not save report: {exc}\", file=sys.stderr)",
+          "raw_source": true
+        }
+      ],
+      "metrics": {
+        "retrieval_ms": 18.845,
+        "generation_ms": 57515.279,
+        "context_chars": 14894,
+        "retrieved_chunks": 8,
+        "citation_check": {
+          "status": "valid",
+          "checked": 3,
+          "invalid": []
+        },
+        "abstained": false,
+        "answer_protocol": "source_ids_v1",
+        "quote_check": {
+          "status": "not_applicable",
+          "quotes_checked": 0
+        },
+        "inference": {
+          "model": "qwen2.5-coder:3b",
+          "created_at": "2026-09-15T16:47:02.9766878Z",
+          "done": true,
+          "done_reason": "stop",
+          "total_duration": 57488598500,
+          "load_duration": 2111800,
+          "prompt_eval_count": 3721,
+          "prompt_eval_duration": 48631959000,
+          "eval_count": 115,
+          "eval_duration": 8800170000,
+          "inference_attempts": 1,
+          "retry_count": 0,
+          "request_elapsed_ms": 57514.856,
+          "http_status": 200,
+          "termination_reason": "stop"
+        },
+        "inference_attempts": 1,
+        "termination_reason": "stop",
+        "retrieval_mode": "code",
+        "generated": true,
+        "total_call_ms": 57533.988,
+        "outcome": "answered"
+      },
+      "model_output": "{\n  \"answer\": \"The maximum number of selected files is enforced in the `analyze_repo_node` function, which limits the selection to `MAX_SELECTED_FILES` using a relevance score. This is done by sorting the files based on their relevance to the user query and selecting the top-k most relevant files. The function uses the `rank_chunks` function to rank the chunks and then selects the top-k files based on their score.\",\n  \"source_ids\": [\"S3\", \"S6\", \"S8\"],\n  \"insufficient_evidence\": false\n}",
+      "status": "completed",
+      "outcome": "answered",
+      "score": null,
+      "reviewer_reason": ""
+    },
+    {
+      "id": "q40",
+      "question": "Which reducer combines graph messages?",
+      "reference_answer": "The messages field uses LangGraph add_messages.",
+      "answer": "The reducer that combines graph messages is the `Agent_State` class in `state_schema.py`.\n\nSources: [state_schema.py:L1-L27], [src/nodes/__init__.py:L1-L1], [langgraph_app.py:L1-L40], [src/nodes/fetch_repo_metadata_node.py:L5-L66], [requirements.txt:L1-L27], [src/nodes/query_analyser_node.py:L81-L109], [src/nodes/fetch_repo_metadata_node.py:L1-L4], [run_cli.py:L33-L46]",
+      "sources": [
+        {
+          "path": "state_schema.py",
+          "start_line": 1,
+          "end_line": 27,
+          "text": "# state_schema.py\n\nfrom typing import Annotated, Any, Optional, Sequence, TypedDict, Union, Dict, List\nfrom langgraph.graph.message import add_messages\nfrom langchain_core.messages import BaseMessage\n\n\nclass Agent_State(TypedDict):\n    \"\"\"\n    LangGraph state structure for the Repo Analyzer + Summarizer Agent.\n\n    This is the central shared memory between all nodes.\n    \"\"\"\n    messages: Annotated[Sequence[BaseMessage], add_messages]\n    url: Union[str, None]\n    branch: Optional[str]          # Git branch to analyse; None \u2192 auto-detect\n    refresh_cache: Optional[bool]  # True \u2192 bypass disk cache for this run\n    repo_tree: Dict[str, Any]\n    global_context: Union[str, None]\n    selected_files: List[Dict[str, Any]]\n    unselected_files: List[str]\n    parsed_files: List[Dict[str, str]]\n    intent: str\n    keywords: List[str]\n    targets: Dict[str, Any]\n    summary: str\n    llm: Any",
+          "raw_source": true
+        },
+        {
+          "path": "src/nodes/__init__.py",
+          "start_line": 1,
+          "end_line": 1,
+          "text": "\"\"\"LangGraph nodes.\"\"\"",
+          "raw_source": true
+        },
+        {
+          "path": "langgraph_app.py",
+          "start_line": 1,
+          "end_line": 40,
+          "text": "from src.nodes.fetch_repo_metadata_node import fetch_repo_metadata_node\nfrom src.nodes.global_context_node import global_context_node\nfrom src.nodes.analyze_repo_node import analyze_tree_node\nfrom src.nodes.fetch_and_parse_node import fetch_and_parse_node\nfrom src.nodes.summarize_repo_node import summarize_repo_node\nfrom src.nodes.query_analyser_node import query_analyser_node\n\nfrom langgraph.graph import StateGraph, END\nfrom state_schema import Agent_State\n\nindexing_workflow = StateGraph(Agent_State)\nqa_workflow = StateGraph(Agent_State)\n\nindexing_workflow.add_node(\"fetch_metadata\", fetch_repo_metadata_node)\nindexing_workflow.add_node(\"global_context\", global_context_node)\nindexing_workflow.add_node(\"analyze_tree\", analyze_tree_node)\nindexing_workflow.add_node(\"fetch_and_parse\", fetch_and_parse_node)\nindexing_workflow.add_node(\"summarize\", summarize_repo_node)\nindexing_workflow.add_node(\"query_analyser\", query_analyser_node)\n\nindexing_workflow.add_edge(\"fetch_metadata\", \"query_analyser\")\nindexing_workflow.add_edge(\"query_analyser\", \"global_context\")\nindexing_workflow.add_edge(\"global_context\", \"analyze_tree\")\nindexing_workflow.add_edge(\"analyze_tree\", \"fetch_and_parse\")\nindexing_workflow.add_edge(\"fetch_and_parse\", \"summarize\")\nindexing_workflow.add_edge(\"summarize\", END)\n\nindexing_workflow.set_entry_point(\"fetch_metadata\")\n\nindex_app = indexing_workflow.compile()\n\nqa_workflow.add_node(\"query_analyzer\", query_analyser_node)\nqa_workflow.add_node(\"analyze_tree\", analyze_tree_node)\nqa_workflow.add_node(\"fetch_and_parse\", fetch_and_parse_node)\nqa_workflow.add_node(\"summarize\", summarize_repo_node)\n\nqa_workflow.set_entry_point(\"query_analyzer\")\nqa_workflow.add_edge(\"query_analyzer\", \"analyze_tree\")\nqa_workflow.add_edge(\"analyze_tree\", \"fetch_and_parse\")\nqa_workflow.add_edge(\"fetch_and_parse\", \"summarize\")",
+          "raw_source": true
+        },
+        {
+          "path": "src/nodes/fetch_repo_metadata_node.py",
+          "start_line": 5,
+          "end_line": 66,
+          "text": "async def fetch_repo_metadata_node(state: dict) -> dict:\n    \"\"\"\n    First node of the workflow:\n    - Reads repository URL from state['url']\n    - Optionally reads state['branch'] and state['refresh_cache']\n    - Calls GitRepoParser to get metadata tree (with disk caching)\n    - Updates state with repo_tree\n    \"\"\"\n\n    repo_url = state.get(\"url\", None)\n    if not repo_url:\n        return {\n            \"messages\": state[\"messages\"] + [\n                SystemMessage(content=\"No repository URL provided.\")\n            ]\n        }\n\n    branch = state.get(\"branch\") or None\n    refresh = bool(state.get(\"refresh_cache\", False))\n\n    try:\n        parser = GitRepoParser()\n        repo_tree = parser.get_dir_tree(repo_url, branch=branch, refresh=refresh)\n\n        return {\n            \"repo_tree\": repo_tree,\n            \"messages\": state[\"messages\"] + [\n                SystemMessage(content=f\"Fetched metadata tree for: {repo_url}\")\n            ]\n        }\n\n    except PermissionError as e:\n        # GitHub rate limit or auth errors\n        err = str(e)\n        print(err)\n        return {\n            \"repo_tree\": {},\n            \"messages\": state[\"messages\"] + [\n                SystemMessage(content=err)\n            ]\n        }\n\n    except ValueError as e:\n        # Bad URL or 404\n        err = str(e)\n        print(err)\n        return {\n            \"repo_tree\": {},\n            \"messages\": state[\"messages\"] + [\n                SystemMessage(content=err)\n            ]\n        }\n\n    except Exception as e:\n        err = f\"Error fetching repository metadata: {e}\"\n        print(err)\n        return {\n            \"repo_tree\": {},\n            \"messages\": state[\"messages\"] + [\n                SystemMessage(content=err)\n            ]\n        }",
+          "raw_source": true
+        },
+        {
+          "path": "requirements.txt",
+          "start_line": 1,
+          "end_line": 27,
+          "text": "# GitHub Code-Analyser Agent \u2014 direct runtime dependencies\n# Install with: pip install -r requirements.txt\n\n# LangChain / LangGraph ecosystem\nlangchain-core>=0.3\nlangchain-google-genai>=3.0\nlangchain-community>=0.4\nlanggraph>=1.0\n\n# Google Gemini SDK\ngoogle-generativeai>=0.8\n\n# HTTP & GitHub access\nrequests>=2.31\n\n# Config / environment\npython-dotenv>=1.0\n\n# File parsers\nPyYAML>=6.0\nnbformat>=5.9\n\n# Progress display (optional but recommended)\ntqdm>=4.65\n\n# Optional: semantic retrieval (install manually if needed)\n# sentence-transformers>=2.7",
+          "raw_source": true
+        },
+        {
+          "path": "src/nodes/query_analyser_node.py",
+          "start_line": 81,
+          "end_line": 109,
+          "text": "async def query_analyser_node(state: dict) -> dict:\n    \"\"\"\n    Reads latest human message, determines intent and extracts useful info.\n    \"\"\"\n\n    messages = state.get(\"messages\", [])\n    user_query = \"\"\n\n    for msg in reversed(messages):\n        if isinstance(msg, HumanMessage):\n            user_query = msg.content\n            break\n\n    if not user_query:\n        return {\n            \"intent\": \"high_level_summary\",\n            \"keywords\": [],\n            \"targets\": {}\n        }\n\n    intent = detect_intent(user_query)\n    keywords = extract_keywords(user_query)\n    targets = extract_targets(user_query)\n\n    return {\n        \"intent\": intent,\n        \"keywords\": keywords,\n        \"targets\": targets,\n    }",
+          "raw_source": true
+        },
+        {
+          "path": "src/nodes/fetch_repo_metadata_node.py",
+          "start_line": 1,
+          "end_line": 4,
+          "text": "# nodes/fetch_repo_metadata_node.py\nfrom langchain_core.messages import SystemMessage\nfrom src.github_repo_parser import GitRepoParser\n",
+          "raw_source": true
+        },
+        {
+          "path": "run_cli.py",
+          "start_line": 33,
+          "end_line": 46,
+          "text": "import asyncio\nimport os\nimport sys\n\nfrom langchain_core.messages import HumanMessage\n\nfrom langgraph_app import index_app, qa_app\nfrom state_schema import Agent_State\n\n\n# ---------------------------------------------------------------------------\n# Helpers\n# ---------------------------------------------------------------------------\n",
+          "raw_source": true
+        }
+      ],
+      "metrics": {
+        "retrieval_ms": 24.566,
+        "generation_ms": 23476.741,
+        "context_chars": 6529,
+        "retrieved_chunks": 8,
+        "citation_check": {
+          "status": "valid",
+          "checked": 8,
+          "invalid": []
+        },
+        "abstained": false,
+        "answer_protocol": "source_ids_v1",
+        "quote_check": {
+          "status": "not_applicable",
+          "quotes_checked": 0
+        },
+        "inference": {
+          "model": "qwen2.5-coder:3b",
+          "created_at": "2026-09-15T16:47:26.4899753Z",
+          "done": true,
+          "done_reason": "stop",
+          "total_duration": 23450991400,
+          "load_duration": 2105500,
+          "prompt_eval_count": 1634,
+          "prompt_eval_duration": 18694945000,
+          "eval_count": 74,
+          "eval_duration": 4704545000,
+          "inference_attempts": 1,
+          "retry_count": 0,
+          "request_elapsed_ms": 23476.324,
+          "http_status": 200,
+          "termination_reason": "stop"
+        },
+        "inference_attempts": 1,
+        "termination_reason": "stop",
+        "retrieval_mode": "code",
+        "generated": true,
+        "total_call_ms": 23501.157,
+        "outcome": "answered"
+      },
+      "model_output": "{\n  \"answer\": \"The reducer that combines graph messages is the `Agent_State` class in `state_schema.py`.\",\n  \"source_ids\": [\"S1\", \"S2\", \"S3\", \"S4\", \"S5\", \"S6\", \"S7\", \"S8\"],\n  \"insufficient_evidence\": false\n}",
+      "status": "completed",
+      "outcome": "answered",
+      "score": null,
+      "reviewer_reason": ""
+    },
+    {
+      "id": "q44",
+      "question": "Where are Markdown question-answer reports stored?",
+      "reference_answer": "Under the reports directory.",
+      "answer": "Markdown question-answer reports are stored in the `reports/` directory under the `src/report/writer.py` file.\n\nSources: [src/report/writer.py:L1-L16], [src/report/writer.py:L17-L86], [run_cli.py:L64-L85], [run_cli.py:L154-L183], [run_cli.py:L362-L458], [run_cli.py:L1-L40], [run_cli.py:L289-L355], [run_cli.py:L127-L151]",
+      "sources": [
+        {
+          "path": "run_cli.py",
+          "start_line": 64,
+          "end_line": 85,
+          "text": "def _try_save_report(\n    repo_url: str,\n    question: str,\n    state: Agent_State,\n    branch: str | None,\n    no_report: bool,\n) -> None:\n    \"\"\"Save a Markdown report unless --no-report was given.\"\"\"\n    if no_report:\n        return\n    try:\n        from src.report.writer import write_report\n        report_path = write_report(\n            repo_url=repo_url,\n            question=question,\n            selected_files=state.get(\"selected_files\", []),\n            answer=state.get(\"summary\", \"\"),\n            branch=branch,\n        )\n        print(f\"\\nReport saved -> {report_path}\")\n    except Exception as exc:  # noqa: BLE001\n        print(f\"Warning: could not save report: {exc}\", file=sys.stderr)",
+          "raw_source": true
+        },
+        {
+          "path": "run_cli.py",
+          "start_line": 154,
+          "end_line": 183,
+          "text": "async def qa_loop(repo_state: Agent_State, args: argparse.Namespace) -> None:\n    \"\"\"Interactive multi-turn Q&A loop with optional per-turn report saving.\"\"\"\n    current_state = repo_state\n\n    while True:\n        try:\n            user_query = input(\"\\nYou (or 'exit' to quit): \\n\\n\").strip()\n        except (EOFError, KeyboardInterrupt):\n            print(\"\\nExiting.\")\n            break\n\n        if not user_query:\n            continue\n        if user_query.lower() in {\"exit\", \"quit\"}:\n            print(\"\\nGOODBYE...\")\n            break\n\n        current_state = await qa(current_state, user_query, top_k=args.top_k)\n        summary = current_state.get(\"summary\") or \"(No answer generated.)\"\n        print(\"\\nAgent:\\n\")\n        print(summary)\n\n        # Save a report for each interactive answer unless suppressed\n        _try_save_report(\n            repo_url=args.repo_url,\n            question=user_query,\n            state=current_state,\n            branch=args.branch,\n            no_report=args.no_report,\n        )",
+          "raw_source": true
+        },
+        {
+          "path": "src/report/writer.py",
+          "start_line": 17,
+          "end_line": 86,
+          "text": "def write_report(\n    repo_url: str,\n    question: str,\n    selected_files: list[dict],\n    answer: str,\n    branch: str | None = None,\n) -> Path:\n    \"\"\"\n    Persist a Q&A report to ``reports/report_<timestamp>.md``.\n\n    Parameters\n    ----------\n    repo_url:       The analysed GitHub repository URL.\n    question:       The user's question.\n    selected_files: List of file-metadata dicts chosen by the agent.\n    answer:         The LLM-generated answer.\n    branch:         Git branch that was analysed (``None`` \u2192 \"default\").\n\n    Returns\n    -------\n    The :class:`~pathlib.Path` of the written report file.\n    \"\"\"\n    _REPORT_DIR.mkdir(parents=True, exist_ok=True)\n\n    timestamp = datetime.now(tz=timezone.utc)\n    filename = f\"report_{timestamp.strftime('%Y%m%dT%H%M%SZ')}.md\"\n    report_path = _REPORT_DIR / filename\n\n    # Build selected-files list\n    file_lines = \"\\n\".join(\n        f\"- `{f.get('path', '<unknown>')}`\"\n        for f in (selected_files or [])\n    ) or \"_No files selected._\"\n\n    branch_display = branch or \"default\"\n\n    content = f\"\"\"\\\n# GitHub Code-Analyser Report\n\n| Field | Value |\n|---|---|\n| **Repository** | {repo_url} |\n| **Branch** | `{branch_display}` |\n| **Generated** | {timestamp.strftime('%Y-%m-%d %H:%M:%S UTC')} |\n\n---\n\n## Question\n\n> {question}\n\n---\n\n## Files Analysed\n\n{file_lines}\n\n---\n\n## Answer\n\n{answer}\n\n---\n\n_Generated by [GitHub Code-Analyser Agent](https://github.com)_\n\"\"\"\n\n    report_path.write_text(content, encoding=\"utf-8\")\n    return report_path",
+          "raw_source": true
+        },
+        {
+          "path": "src/report/writer.py",
+          "start_line": 1,
+          "end_line": 16,
+          "text": "\"\"\"\nsrc/report/writer.py\n====================\nSaves one-shot Q&A answers as Markdown reports under ``reports/``.\n\"\"\"\n\nfrom __future__ import annotations\n\nimport os\nfrom datetime import datetime, timezone\nfrom pathlib import Path\n\n\n_REPORT_DIR = Path(\"reports\")\n\n",
+          "raw_source": true
+        },
+        {
+          "path": "run_cli.py",
+          "start_line": 362,
+          "end_line": 458,
+          "text": "async def main() -> int:\n    args = parse_args()\n\n    # ---- Verbose logging ----\n    if args.verbose:\n        from src.utils.logger import set_verbose\n        set_verbose(True)\n\n    # ---- Smoke test (no API key needed) ----\n    if args.smoke_test:\n        return smoke_test()\n\n    # ---- Validate repo URL ----\n    if not args.repo_url:\n        print(\n            \"Usage: python run_cli.py <github_repo_url> [options]\\n\"\n            \"Try:   python run_cli.py --smoke-test\\n\"\n            \"Help:  python run_cli.py --help\",\n            file=sys.stderr,\n        )\n        return 1\n\n    # ---- Check API key early ----\n    _check_api_key()\n\n    # ---- Apply retrieval-mode override ----\n    if args.retrieval_mode:\n        os.environ[\"RETRIEVAL_MODE\"] = args.retrieval_mode\n        import src.config.settings as _s\n        _s.RETRIEVAL_MODE = args.retrieval_mode\n\n    # ---- Validate URL format before hitting the network ----\n    repo_url = args.repo_url.strip()\n    if \"github.com/\" not in repo_url:\n        print(\n            f\"Error: '{repo_url}' doesn't look like a GitHub URL.\\n\"\n            \"  Expected format: https://github.com/owner/repo\",\n            file=sys.stderr,\n        )\n        return 1\n\n    try:\n        repo_state = await load_repo(\n            repo_url,\n            branch=args.branch,\n            refresh_cache=args.refresh_cache,\n            top_k=args.top_k,\n        )\n        print(\"Repository indexed. You can now ask questions about the codebase.\")\n\n        if args.question:\n            answered_state = await qa(repo_state, args.question, top_k=args.top_k)\n            answer = answered_state.get(\"summary\") or \"(No answer generated.)\"\n            print(\"\\nAgent:\\n\")\n            print(answer)\n\n            _try_save_report(\n                repo_url=repo_url,\n                question=args.question,\n                state=answered_state,\n                branch=args.branch,\n                no_report=args.no_report,\n            )\n            return 0\n\n        await qa_loop(repo_state, args)\n        return 0\n\n    except PermissionError as e:\n        print(f\"GitHub Error: {e}\", file=sys.stderr)\n        return 1\n\n    except ValueError as e:\n        msg = str(e)\n        if \"must look like\" in msg or \"not found\" in msg:\n            print(f\"Invalid repository: {msg}\", file=sys.stderr)\n        else:\n            print(f\"Error: {msg}\", file=sys.stderr)\n        return 1\n\n    except Exception as error:\n        message = str(error)\n        if \"RESOURCE_EXHAUSTED\" in message or \"429\" in message:\n            print(\n                \"Gemini quota exceeded. \"\n                \"Try a lighter model (GOOGLE_MODEL=gemini-1.5-flash) or wait and retry.\",\n                file=sys.stderr,\n            )\n        elif \"GOOGLE_API_KEY\" in message or \"GEMINI_API_KEY\" in message:\n            print(\n                \"Error: Missing or invalid Gemini API key.\\n\"\n                \"  Set GOOGLE_API_KEY=<your_key> in your .env file.\",\n                file=sys.stderr,\n            )\n        else:\n            print(f\"Error: {message}\", file=sys.stderr)\n        return 1",
+          "raw_source": true
+        },
+        {
+          "path": "run_cli.py",
+          "start_line": 1,
+          "end_line": 40,
+          "text": "\"\"\"\nrun_cli.py -- GitHub Code-Analyser Agent CLI\n=============================================\n\nUsage examples\n--------------\n# Local smoke-test (no network, no API key required)\npython run_cli.py --smoke-test\n\n# Index a repo and open the interactive Q&A loop\npython run_cli.py https://github.com/owner/repo\n\n# One-shot question (saves a Markdown report to reports/)\npython run_cli.py https://github.com/owner/repo -q \"Explain the architecture\"\n\n# Analyse a specific branch\npython run_cli.py https://github.com/owner/repo --branch develop -q \"What changed?\"\n\n# Force-refresh the cache\npython run_cli.py https://github.com/owner/repo --refresh-cache -q \"Show pipeline\"\n\n# Verbose debug output\npython run_cli.py https://github.com/owner/repo -q \"Explain X\" --verbose\n\n# Top-5 chunks, semantic ranking, suppress report\npython run_cli.py https://github.com/owner/repo -q \"Explain X\" --top-k 5 \\\\\n    --retrieval-mode semantic --no-report\n\"\"\"\n\nfrom __future__ import annotations\n\nimport argparse\nimport asyncio\nimport os\nimport sys\n\nfrom langchain_core.messages import HumanMessage\n\nfrom langgraph_app import index_app, qa_app\nfrom state_schema import Agent_State",
+          "raw_source": true
+        },
+        {
+          "path": "run_cli.py",
+          "start_line": 289,
+          "end_line": 355,
+          "text": "def parse_args() -> argparse.Namespace:\n    parser = argparse.ArgumentParser(\n        description=(\n            \"Index a GitHub repository and ask developer-productivity \"\n            \"questions about the codebase.\"\n        ),\n        formatter_class=argparse.RawDescriptionHelpFormatter,\n        epilog=\"\"\"\nExamples:\n  python run_cli.py --smoke-test\n  python run_cli.py https://github.com/owner/repo\n  python run_cli.py https://github.com/owner/repo -q \"Explain the architecture\"\n  python run_cli.py https://github.com/owner/repo --branch develop -q \"What changed?\"\n  python run_cli.py https://github.com/owner/repo --refresh-cache -q \"Show pipeline\"\n  python run_cli.py https://github.com/owner/repo -q \"Explain X\" --top-k 5 --no-report\n  python run_cli.py https://github.com/owner/repo -q \"Debug\" --verbose\n\"\"\",\n    )\n    parser.add_argument(\n        \"repo_url\",\n        nargs=\"?\",\n        help=\"GitHub repository URL, e.g. https://github.com/owner/repo\",\n    )\n    parser.add_argument(\n        \"-q\", \"--question\",\n        help=\"Ask one question and exit (one-shot mode). Saves a Markdown report unless --no-report.\",\n    )\n    parser.add_argument(\n        \"--branch\",\n        metavar=\"BRANCH\",\n        default=None,\n        help=\"Git branch to analyse (default: repo default branch).\",\n    )\n    parser.add_argument(\n        \"--refresh-cache\",\n        action=\"store_true\",\n        help=\"Bypass the on-disk cache and re-fetch all GitHub data.\",\n    )\n    parser.add_argument(\n        \"--top-k\",\n        type=int,\n        default=None,\n        metavar=\"N\",\n        help=\"Number of top-ranked file chunks sent to the LLM (default: 8).\",\n    )\n    parser.add_argument(\n        \"--retrieval-mode\",\n        choices=[\"lexical\", \"semantic\"],\n        default=None,\n        help=\"Chunk ranking strategy (default: lexical).\",\n    )\n    parser.add_argument(\n        \"--no-report\",\n        action=\"store_true\",\n        help=\"Suppress Markdown report export.\",\n    )\n    parser.add_argument(\n        \"--verbose\",\n        action=\"store_true\",\n        help=\"Enable DEBUG-level logging for troubleshooting.\",\n    )\n    parser.add_argument(\n        \"--smoke-test\",\n        action=\"store_true\",\n        help=\"Run local parser/utility checks without network or LLM calls.\",\n    )\n    return parser.parse_args()",
+          "raw_source": true
+        },
+        {
+          "path": "run_cli.py",
+          "start_line": 127,
+          "end_line": 151,
+          "text": "async def qa(\n    repo_state: Agent_State,\n    question: str,\n    top_k: int | None = None,\n) -> Agent_State:\n    \"\"\"Run one Q&A turn and return the updated state.\"\"\"\n    state: Agent_State = {\n        **repo_state,\n        \"messages\": [HumanMessage(content=question)],\n        \"intent\": \"\",\n        \"keywords\": [],\n        \"targets\": {},\n        \"selected_files\": [],\n        \"unselected_files\": [],\n        \"summary\": \"\",\n    }\n\n    if top_k is not None:\n        state[\"top_k\"] = top_k  # type: ignore[typeddict-unknown-key]\n\n    async for step in qa_app.astream(state):\n        _, delta = list(step.items())[0]\n        state.update(delta)\n\n    return state",
+          "raw_source": true
+        }
+      ],
+      "metrics": {
+        "retrieval_ms": 20.234,
+        "generation_ms": 39108.841,
+        "context_chars": 10913,
+        "retrieved_chunks": 8,
+        "citation_check": {
+          "status": "valid",
+          "checked": 8,
+          "invalid": []
+        },
+        "abstained": false,
+        "answer_protocol": "source_ids_v1",
+        "quote_check": {
+          "status": "not_applicable",
+          "quotes_checked": 0
+        },
+        "inference": {
+          "model": "qwen2.5-coder:3b",
+          "created_at": "2026-09-15T16:48:05.6171048Z",
+          "done": true,
+          "done_reason": "stop",
+          "total_duration": 39079881500,
+          "load_duration": 1706100,
+          "prompt_eval_count": 2734,
+          "prompt_eval_duration": 33658009000,
+          "eval_count": 78,
+          "eval_duration": 5380793000,
+          "inference_attempts": 1,
+          "retry_count": 0,
+          "request_elapsed_ms": 39108.455,
+          "http_status": 200,
+          "termination_reason": "stop"
+        },
+        "inference_attempts": 1,
+        "termination_reason": "stop",
+        "retrieval_mode": "code",
+        "generated": true,
+        "total_call_ms": 39128.965,
+        "outcome": "answered"
+      },
+      "model_output": "{\n  \"answer\": \"Markdown question-answer reports are stored in the `reports/` directory under the `src/report/writer.py` file.\",\n  \"source_ids\": [\"S4\", \"S3\", \"S1\", \"S2\", \"S5\", \"S6\", \"S7\", \"S8\"],\n  \"insufficient_evidence\": false\n}",
+      "status": "completed",
+      "outcome": "answered",
+      "score": null,
+      "reviewer_reason": ""
+    },
+    {
+      "id": "q48",
+      "question": "How does the interactive CLI recognize a request to quit?",
+      "reference_answer": "Case-insensitive exit or quit ends the loop.",
+      "answer": "The interactive CLI recognizes a request to quit by checking if the user input is 'exit' or 'quit'. If the input matches either of these strings, it prints 'GOODBYE...' and breaks out of the while loop, effectively quitting the CLI.\n\nSources: [run_cli.py:L154-L183], [run_cli.py:L1-L40], [.github/workflows/ci.yml:L1-L38], [run_cli.py:L289-L355], [src/utils/fetch_blob.py:L1-L15], [src/github_repo_parser.py:L1-L16], [src/github_repo_parser.py:L17-L28], [run_cli.py:L362-L458]",
+      "sources": [
+        {
+          "path": "run_cli.py",
+          "start_line": 154,
+          "end_line": 183,
+          "text": "async def qa_loop(repo_state: Agent_State, args: argparse.Namespace) -> None:\n    \"\"\"Interactive multi-turn Q&A loop with optional per-turn report saving.\"\"\"\n    current_state = repo_state\n\n    while True:\n        try:\n            user_query = input(\"\\nYou (or 'exit' to quit): \\n\\n\").strip()\n        except (EOFError, KeyboardInterrupt):\n            print(\"\\nExiting.\")\n            break\n\n        if not user_query:\n            continue\n        if user_query.lower() in {\"exit\", \"quit\"}:\n            print(\"\\nGOODBYE...\")\n            break\n\n        current_state = await qa(current_state, user_query, top_k=args.top_k)\n        summary = current_state.get(\"summary\") or \"(No answer generated.)\"\n        print(\"\\nAgent:\\n\")\n        print(summary)\n\n        # Save a report for each interactive answer unless suppressed\n        _try_save_report(\n            repo_url=args.repo_url,\n            question=user_query,\n            state=current_state,\n            branch=args.branch,\n            no_report=args.no_report,\n        )",
+          "raw_source": true
+        },
+        {
+          "path": "run_cli.py",
+          "start_line": 1,
+          "end_line": 40,
+          "text": "\"\"\"\nrun_cli.py -- GitHub Code-Analyser Agent CLI\n=============================================\n\nUsage examples\n--------------\n# Local smoke-test (no network, no API key required)\npython run_cli.py --smoke-test\n\n# Index a repo and open the interactive Q&A loop\npython run_cli.py https://github.com/owner/repo\n\n# One-shot question (saves a Markdown report to reports/)\npython run_cli.py https://github.com/owner/repo -q \"Explain the architecture\"\n\n# Analyse a specific branch\npython run_cli.py https://github.com/owner/repo --branch develop -q \"What changed?\"\n\n# Force-refresh the cache\npython run_cli.py https://github.com/owner/repo --refresh-cache -q \"Show pipeline\"\n\n# Verbose debug output\npython run_cli.py https://github.com/owner/repo -q \"Explain X\" --verbose\n\n# Top-5 chunks, semantic ranking, suppress report\npython run_cli.py https://github.com/owner/repo -q \"Explain X\" --top-k 5 \\\\\n    --retrieval-mode semantic --no-report\n\"\"\"\n\nfrom __future__ import annotations\n\nimport argparse\nimport asyncio\nimport os\nimport sys\n\nfrom langchain_core.messages import HumanMessage\n\nfrom langgraph_app import index_app, qa_app\nfrom state_schema import Agent_State",
+          "raw_source": true
+        },
+        {
+          "path": ".github/workflows/ci.yml",
+          "start_line": 1,
+          "end_line": 38,
+          "text": "name: CI\n\non:\n  push:\n  pull_request:\n\njobs:\n  test:\n    name: Compile & Test (Python ${{ matrix.python-version }})\n    runs-on: ubuntu-latest\n    strategy:\n      fail-fast: false\n      matrix:\n        python-version: [\"3.11\", \"3.12\"]\n\n    steps:\n      - uses: actions/checkout@v4\n\n      - uses: actions/setup-python@v5\n        with:\n          python-version: ${{ matrix.python-version }}\n          cache: pip\n\n      - name: Install dependencies\n        run: |\n          python -m pip install --upgrade pip\n          pip install -r requirements-dev.txt\n\n      - name: Compile (syntax check)\n        run: python -m compileall -q .\n\n      - name: Unit tests\n        env:\n          TQDM_DISABLE: \"1\"\n        run: python -m pytest tests/ -v --tb=short\n\n      - name: Smoke test (no network / no API key)\n        run: python run_cli.py --smoke-test",
+          "raw_source": true
+        },
+        {
+          "path": "run_cli.py",
+          "start_line": 289,
+          "end_line": 355,
+          "text": "def parse_args() -> argparse.Namespace:\n    parser = argparse.ArgumentParser(\n        description=(\n            \"Index a GitHub repository and ask developer-productivity \"\n            \"questions about the codebase.\"\n        ),\n        formatter_class=argparse.RawDescriptionHelpFormatter,\n        epilog=\"\"\"\nExamples:\n  python run_cli.py --smoke-test\n  python run_cli.py https://github.com/owner/repo\n  python run_cli.py https://github.com/owner/repo -q \"Explain the architecture\"\n  python run_cli.py https://github.com/owner/repo --branch develop -q \"What changed?\"\n  python run_cli.py https://github.com/owner/repo --refresh-cache -q \"Show pipeline\"\n  python run_cli.py https://github.com/owner/repo -q \"Explain X\" --top-k 5 --no-report\n  python run_cli.py https://github.com/owner/repo -q \"Debug\" --verbose\n\"\"\",\n    )\n    parser.add_argument(\n        \"repo_url\",\n        nargs=\"?\",\n        help=\"GitHub repository URL, e.g. https://github.com/owner/repo\",\n    )\n    parser.add_argument(\n        \"-q\", \"--question\",\n        help=\"Ask one question and exit (one-shot mode). Saves a Markdown report unless --no-report.\",\n    )\n    parser.add_argument(\n        \"--branch\",\n        metavar=\"BRANCH\",\n        default=None,\n        help=\"Git branch to analyse (default: repo default branch).\",\n    )\n    parser.add_argument(\n        \"--refresh-cache\",\n        action=\"store_true\",\n        help=\"Bypass the on-disk cache and re-fetch all GitHub data.\",\n    )\n    parser.add_argument(\n        \"--top-k\",\n        type=int,\n        default=None,\n        metavar=\"N\",\n        help=\"Number of top-ranked file chunks sent to the LLM (default: 8).\",\n    )\n    parser.add_argument(\n        \"--retrieval-mode\",\n        choices=[\"lexical\", \"semantic\"],\n        default=None,\n        help=\"Chunk ranking strategy (default: lexical).\",\n    )\n    parser.add_argument(\n        \"--no-report\",\n        action=\"store_true\",\n        help=\"Suppress Markdown report export.\",\n    )\n    parser.add_argument(\n        \"--verbose\",\n        action=\"store_true\",\n        help=\"Enable DEBUG-level logging for troubleshooting.\",\n    )\n    parser.add_argument(\n        \"--smoke-test\",\n        action=\"store_true\",\n        help=\"Run local parser/utility checks without network or LLM calls.\",\n    )\n    return parser.parse_args()",
+          "raw_source": true
+        },
+        {
+          "path": "src/utils/fetch_blob.py",
+          "start_line": 1,
+          "end_line": 15,
+          "text": "\"\"\"\nsrc/utils/fetch_blob.py\n=======================\nFetches raw file content from a URL (typically a GitHub raw URL).\nResults are transparently cached on disk to avoid redundant network\nround-trips on repeated runs.\n\"\"\"\n\nfrom __future__ import annotations\n\nimport requests\n\nfrom src.cache.disk_cache import load as cache_load, save as cache_save\n\n",
+          "raw_source": true
+        },
+        {
+          "path": "src/github_repo_parser.py",
+          "start_line": 1,
+          "end_line": 16,
+          "text": "\"\"\"\nScript to parse Repository and store contents\nin textual form.\n\"\"\"\n\nfrom __future__ import annotations\n\nimport json\nimport os\nimport requests\n\nfrom src.cache.disk_cache import load_json as cache_load_json, save_json as cache_save_json\nfrom src.config.settings import GITHUB_TOKEN, EXCLUDE_EXT\n\n\nclass GitRepoParser:",
+          "raw_source": true
+        },
+        {
+          "path": "src/github_repo_parser.py",
+          "start_line": 17,
+          "end_line": 28,
+          "text": "    def __init__(self, github_token: bool = True):\n        self.s = requests.Session()\n        if github_token and GITHUB_TOKEN:\n            self.s.headers.update({\"Authorization\": f\"Token {GITHUB_TOKEN}\"})\n\n        self.exclude_ext = EXCLUDE_EXT\n\n        # Raw API (for fetching actual file contents)\n        self.raw_api = \"https://raw.githubusercontent.com/\"\n\n        # GitHub contents API (for listing files)\n        self.contents_api = \"https://api.github.com/repos/\"",
+          "raw_source": true
+        },
+        {
+          "path": "run_cli.py",
+          "start_line": 362,
+          "end_line": 458,
+          "text": "async def main() -> int:\n    args = parse_args()\n\n    # ---- Verbose logging ----\n    if args.verbose:\n        from src.utils.logger import set_verbose\n        set_verbose(True)\n\n    # ---- Smoke test (no API key needed) ----\n    if args.smoke_test:\n        return smoke_test()\n\n    # ---- Validate repo URL ----\n    if not args.repo_url:\n        print(\n            \"Usage: python run_cli.py <github_repo_url> [options]\\n\"\n            \"Try:   python run_cli.py --smoke-test\\n\"\n            \"Help:  python run_cli.py --help\",\n            file=sys.stderr,\n        )\n        return 1\n\n    # ---- Check API key early ----\n    _check_api_key()\n\n    # ---- Apply retrieval-mode override ----\n    if args.retrieval_mode:\n        os.environ[\"RETRIEVAL_MODE\"] = args.retrieval_mode\n        import src.config.settings as _s\n        _s.RETRIEVAL_MODE = args.retrieval_mode\n\n    # ---- Validate URL format before hitting the network ----\n    repo_url = args.repo_url.strip()\n    if \"github.com/\" not in repo_url:\n        print(\n            f\"Error: '{repo_url}' doesn't look like a GitHub URL.\\n\"\n            \"  Expected format: https://github.com/owner/repo\",\n            file=sys.stderr,\n        )\n        return 1\n\n    try:\n        repo_state = await load_repo(\n            repo_url,\n            branch=args.branch,\n            refresh_cache=args.refresh_cache,\n            top_k=args.top_k,\n        )\n        print(\"Repository indexed. You can now ask questions about the codebase.\")\n\n        if args.question:\n            answered_state = await qa(repo_state, args.question, top_k=args.top_k)\n            answer = answered_state.get(\"summary\") or \"(No answer generated.)\"\n            print(\"\\nAgent:\\n\")\n            print(answer)\n\n            _try_save_report(\n                repo_url=repo_url,\n                question=args.question,\n                state=answered_state,\n                branch=args.branch,\n                no_report=args.no_report,\n            )\n            return 0\n\n        await qa_loop(repo_state, args)\n        return 0\n\n    except PermissionError as e:\n        print(f\"GitHub Error: {e}\", file=sys.stderr)\n        return 1\n\n    except ValueError as e:\n        msg = str(e)\n        if \"must look like\" in msg or \"not found\" in msg:\n            print(f\"Invalid repository: {msg}\", file=sys.stderr)\n        else:\n            print(f\"Error: {msg}\", file=sys.stderr)\n        return 1\n\n    except Exception as error:\n        message = str(error)\n        if \"RESOURCE_EXHAUSTED\" in message or \"429\" in message:\n            print(\n                \"Gemini quota exceeded. \"\n                \"Try a lighter model (GOOGLE_MODEL=gemini-1.5-flash) or wait and retry.\",\n                file=sys.stderr,\n            )\n        elif \"GOOGLE_API_KEY\" in message or \"GEMINI_API_KEY\" in message:\n            print(\n                \"Error: Missing or invalid Gemini API key.\\n\"\n                \"  Set GOOGLE_API_KEY=<your_key> in your .env file.\",\n                file=sys.stderr,\n            )\n        else:\n            print(f\"Error: {message}\", file=sys.stderr)\n        return 1",
+          "raw_source": true
+        }
+      ],
+      "metrics": {
+        "retrieval_ms": 18.676,
+        "generation_ms": 37946.312,
+        "context_chars": 9791,
+        "retrieved_chunks": 8,
+        "citation_check": {
+          "status": "valid",
+          "checked": 8,
+          "invalid": []
+        },
+        "abstained": false,
+        "answer_protocol": "source_ids_v1",
+        "quote_check": {
+          "status": "not_applicable",
+          "quotes_checked": 0
+        },
+        "inference": {
+          "model": "qwen2.5-coder:3b",
+          "created_at": "2026-09-15T16:48:43.5886149Z",
+          "done": true,
+          "done_reason": "stop",
+          "total_duration": 37919539500,
+          "load_duration": 2096200,
+          "prompt_eval_count": 2433,
+          "prompt_eval_duration": 29777495000,
+          "eval_count": 105,
+          "eval_duration": 8091878000,
+          "inference_attempts": 1,
+          "retry_count": 0,
+          "request_elapsed_ms": 37945.893,
+          "http_status": 200,
+          "termination_reason": "stop"
+        },
+        "inference_attempts": 1,
+        "termination_reason": "stop",
+        "retrieval_mode": "code",
+        "generated": true,
+        "total_call_ms": 37964.864,
+        "outcome": "answered"
+      },
+      "model_output": "{\n  \"answer\": \"The interactive CLI recognizes a request to quit by checking if the user input is 'exit' or 'quit'. If the input matches either of these strings, it prints 'GOODBYE...' and breaks out of the while loop, effectively quitting the CLI.\",\n  \"source_ids\": [\"S1\", \"S2\", \"S3\", \"S4\", \"S5\", \"S6\", \"S7\", \"S8\"],\n  \"insufficient_evidence\": false\n}",
+      "status": "completed",
+      "outcome": "answered",
+      "score": null,
+      "reviewer_reason": ""
+    }
+  ]
+}

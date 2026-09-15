@@ -43,7 +43,7 @@ GitHub mode needs internet access. `GITHUB_TOKEN` is optional for public reposit
 
 ## Measured retrieval results
 
-The versioned benchmark has **50 source-annotated questions over 33 files from one frozen historical commit** of this repository. All configurations use the same questions, corpus, TF-IDF ranking, and 18,000-character context budget.
+The versioned benchmark has **50 source-annotated questions over 33 files from one frozen historical commit** of this repository. The baseline table below uses the same questions, corpus, TF-IDF ranking, and 18,000-character context budget.
 
 | Chunk size / overlap | Top K | File Recall@K | Evidence hit rate | MRR@K |
 |---|---:|---:|---:|---:|
@@ -67,6 +67,8 @@ CI fails if file recall, evidence hit rate, or MRR drops below the checked-in ba
 
 ## Live local-model baseline
 
+An opt-in `--retrieval-mode code` candidate adds identifier-aware BM25 and Python function-sized evidence; it measured **100% file recall and 94% evidence-anchor coverage** on the same regression set. The original mode remains available and unchanged. The separate `code_compact` development candidate keeps that K=8 retriever, then selects at most four complete excerpts within 8,000 rendered source characters; its offline selected-context coverage is recorded in `evaluation/code_compact_results.json`. See [the experiment and its limitations](docs/IMPROVEMENTS.md); retrieval improvement alone is not an answer-quality claim.
+
 All 50 questions were answered by **Qwen2.5-Coder 3B, Q4_K_M**, through Ollama 0.33.3 on a Ryzen 5 5600H CPU with 15.4 GiB system RAM. No hosted API was used.
 
 | Measure | Observed result |
@@ -80,6 +82,23 @@ All 50 questions were answered by **Qwen2.5-Coder 3B, Q4_K_M**, through Ollama 0
 These are **model-assisted source-review judgments, not independent human validation**. This is one authored regression set, one model, and one run—not a held-out accuracy estimate. The [complete artifact](evaluation/live_answers.json) includes every raw model response, retrieved excerpt, grade and reason.
 
 All 50 answers had valid citation locations, but only 19 received full answer credit. The model never abstained, including on missing-evidence cases. This is a useful baseline with clear weaknesses, not a production-quality claim: source-ID rendering ensures appended locations come from retrieval, not that the prose is true. See [failure analysis and reproduction](docs/EVALUATION.md#published-local-run).
+
+### Frozen compact candidate result
+
+The measured `code_compact` candidate keeps identifier-aware AST/BM25 retrieval at K=8, then sends at most four complete source excerpts within an 8,000-character rendered-source budget. It uses a versioned `source_ids_v1` prompt and local Qwen2.5-Coder 3B. The full run was frozen before review and contains raw model outputs, selected excerpts, timings, model digest, runtime identity, and request totals.
+
+| Measure | Compact authored run |
+|---|---:|
+| Correct, complete and supported (score 2) | 28/50 (56%) |
+| Partially correct (score 1) | 14/50 |
+| Incorrect / zero score | 8/50 |
+| Mean rubric score | 1.40 / 2 |
+| Answer coverage | 49/50 (98%) |
+| Incorrect delivered answers | 7 |
+| False abstentions | 1 |
+| Median / P95 generation wall time | 16.658 / 29.266 seconds |
+
+The fixed authored acceptance gate requires at least 30 fully supported answers; this candidate reaches 28, so it remains an evaluated prototype. Mean score, incorrect-delivery, and false-abstention thresholds pass. The change is still a measured improvement over the original 19/50 full, 1.16/2 mean, and 11 incorrect baseline, but the review is model-assisted on one authored set—not independent human or held-out validation. See the [raw run](evaluation/code-compact-sourceid-full.json), [complete scored artifact](evaluation/code-compact-sourceid-full-reviewed.json), and [row-level review](evaluation/code-compact-sourceid-full-astra-review.json).
 
 ## Architecture
 
@@ -115,7 +134,7 @@ Copy `.env.example` to `.env` if you want persistent settings. Do not commit key
 | `OLLAMA_TIMEOUT` | `120` | Seconds allowed per model request; increase for slow CPUs |
 | `GITHUB_TOKEN` | unset | Optional public GitHub access token |
 | `TOP_K` / `--top-k` | `8` | Positive number of chunks to retrieve |
-| `RETRIEVAL_MODE` / `--retrieval-mode` | `lexical` | `lexical` or optional `semantic` |
+| `RETRIEVAL_MODE` / `--retrieval-mode` | `lexical` | `lexical`, `semantic`, `code`, or `code_compact` |
 | `MAX_SELECTED_FILES` | `20` | GitHub candidate-file cap per question |
 | `MAX_SIZE_KB` | `200` | Skip oversized files |
 | `MAX_CONCURRENT_FETCHES` | `8` | Concurrent GitHub blob downloads |
@@ -141,6 +160,9 @@ After starting a local model:
 
 ```bash
 python -m evaluation.answers --model qwen2.5-coder:3b --output reports/answer-review.json
+# Compact candidate (local Qwen only; 50 requests, checkpointed after each row)
+python -m evaluation.answers --retrieval-mode code_compact --protocol source_ids_v1 \
+  --output reports/code-compact-sourceid-full.json
 # Declare reviewer_type, then fill each score (0, 1, or 2) and reviewer_reason.
 python -m evaluation.answers --score reports/answer-review.json
 ```

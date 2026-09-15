@@ -29,7 +29,7 @@ CACHE_DIR = os.getenv("CACHE_DIR", ".cache")
 
 # ── Retrieval ────────────────────────────────────────────────────────────────
 TOP_K = int(os.getenv("TOP_K", "8"))
-RETRIEVAL_MODE = os.getenv("RETRIEVAL_MODE", "lexical")   # "lexical" | "semantic"
+RETRIEVAL_MODE = os.getenv("RETRIEVAL_MODE", "lexical")   # lexical | semantic | code | code_compact
 
 # ── Patterns to always skip ──────────────────────────────────────────────────
 # Minified files, source-maps, and other non-semantic assets

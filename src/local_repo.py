@@ -9,6 +9,15 @@ TEXT_EXTENSIONS = {".py", ".md", ".txt", ".toml", ".json", ".yaml", ".yml",
                    ".js", ".ts", ".tsx", ".jsx", ".go", ".rs", ".java"}
 
 
+def _resolved_within(path: Path, base: Path) -> bool:
+    """Check containment after resolving symlinks and Windows reparse points."""
+    try:
+        path.resolve(strict=False).relative_to(base)
+    except (OSError, RuntimeError, ValueError):
+        return False
+    return True
+
+
 def read_local_repo(root: str, max_files: int = 2000) -> list[dict]:
     import os
     base = Path(root).resolve()
@@ -18,10 +27,13 @@ def read_local_repo(root: str, max_files: int = 2000) -> list[dict]:
     for directory, dirs, names in os.walk(base, followlinks=False):
         dirs[:] = sorted(d for d in dirs if d not in SKIP_DIRS
                          and (not d.startswith(".") or d == ".github")
-                         and not (Path(directory) / d).is_symlink())
+                         and not (Path(directory) / d).is_symlink()
+                         and _resolved_within(Path(directory) / d, base))
         for name in sorted(names):
             path = Path(directory) / name
-            if path.is_symlink() or name.startswith(".env") or path.suffix not in TEXT_EXTENSIONS:
+            if (path.is_symlink() or name.startswith(".env")
+                    or path.suffix not in TEXT_EXTENSIONS
+                    or not _resolved_within(path, base)):
                 continue
             if path.stat().st_size > MAX_SIZE_KB * 1024:
                 continue

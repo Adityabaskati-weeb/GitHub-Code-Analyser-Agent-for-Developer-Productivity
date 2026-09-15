@@ -10,6 +10,14 @@ import statistics
 from time import perf_counter
 
 from src.retrieval.evidence import retrieve, bounded_context
+from src.retrieval.context_selector import (
+    COMPACT_CONTEXT_BUDGET,
+    COMPACT_CONTEXT_VERSION,
+    COMPACT_MAX_EXCERPTS,
+    context_selection_metadata,
+    rendered_context_chars,
+    select_compact_context,
+)
 
 HERE = Path(__file__).resolve().parent
 
@@ -54,15 +62,45 @@ def evaluate(files, questions, top_k=8, chunk_lines=40, overlap=8, mode="lexical
     rows = []
     for q in questions:
         start = perf_counter()
-        chunks = bounded_context(retrieve(q["question"], files, top_k, mode, chunk_lines, overlap))
+        retrieval_mode = "code" if mode == "code_compact" else mode
+        candidates = retrieve(q["question"], files, top_k, retrieval_mode, chunk_lines, overlap)
+        if mode == "code_compact":
+            chunks = select_compact_context(candidates, COMPACT_MAX_EXCERPTS,
+                                            COMPACT_CONTEXT_BUDGET)
+            selection = context_selection_metadata(
+                chunks, candidates, COMPACT_MAX_EXCERPTS, COMPACT_CONTEXT_BUDGET)
+        else:
+            chunks = bounded_context(candidates)
+            selection = {
+                "context_selector": "bounded_v1",
+                "context_budget_chars": 18000,
+                "max_context_excerpts": top_k,
+                "candidate_chunks": len(candidates),
+                "selected_chunks": len(chunks),
+                "selected_context_chars": rendered_context_chars(chunks),
+            }
         elapsed = (perf_counter() - start) * 1000
         rows.append({"id": q["id"], "question": q["question"],
-                     **score_question(q, chunks), "retrieval_ms": round(elapsed, 3),
+                     **score_question(q, chunks), **selection,
+                     "retrieval_ms": round(elapsed, 3),
                      "sources": [f"{c.path}:L{c.start_line}-L{c.end_line}" for c in chunks]})
     times = sorted(r["retrieval_ms"] for r in rows)
+    config = {"mode": mode, "top_k": top_k, "chunk_lines": chunk_lines,
+              "overlap": overlap, "context_budget_chars": 18000}
+    if mode == "code":
+        config = {"mode":mode, "top_k":top_k, "chunking":"python_ast_v1",
+                  "max_function_lines":100, "fallback_chunk_lines":40, "overlap":8,
+                  "ranking":"identifier_bm25_v1", "context_budget_chars":18000}
+    elif mode == "code_compact":
+        config = {"mode":mode, "top_k":top_k, "retrieval":"code",
+                  "chunking":"python_ast_v1", "max_function_lines":100,
+                  "fallback_chunk_lines":40, "overlap":8,
+                  "ranking":"identifier_bm25_v1",
+                  "context_selector":COMPACT_CONTEXT_VERSION,
+                  "max_excerpts":COMPACT_MAX_EXCERPTS,
+                  "context_budget_chars":COMPACT_CONTEXT_BUDGET}
     return {
-        "config": {"mode": mode, "top_k": top_k, "chunk_lines": chunk_lines,
-                   "overlap": overlap, "context_budget_chars": 18000},
+        "config": config,
         "summary": {"questions": len(rows),
                     **{key: round(statistics.mean(r[key] for r in rows), 6)
                        for key in ("file_recall", "reciprocal_rank", "evidence_hit")},
@@ -89,8 +127,12 @@ def main():
     parser.add_argument("--output", type=Path, default=Path("reports/evaluation.json"))
     parser.add_argument("--check", action="store_true")
     parser.add_argument("--compare", action="store_true", help="Compare 20- and 40-line chunks at k=5 and k=8")
-    parser.add_argument("--mode", choices=["lexical", "semantic"], default="lexical")
+    parser.add_argument("--mode", choices=["lexical", "semantic", "code", "code_compact"], default="lexical")
     args = parser.parse_args()
+    if args.compare and args.mode not in {"lexical", "semantic"}:
+        parser.error("--compare varies line windows; use lexical or semantic, not AST mode")
+    if args.check and args.mode == "code_compact":
+        parser.error("code_compact is a measured candidate without an approved regression baseline; use --mode code --check for the preserved K=8 gate")
     corpus, questions = load_dataset()
     dataset_hash = dataset_fingerprint()
     result = evaluate(corpus["files"], questions, mode=args.mode)
@@ -106,7 +148,8 @@ def main():
     print(json.dumps(result["summary"], indent=2))
     print(f"Saved {args.output}")
     if args.check:
-        baseline = json.loads((HERE / "baseline.json").read_text(encoding="utf-8"))
+        name = "baseline-code.json" if args.mode == "code" else "baseline.json"
+        baseline = json.loads((HERE / name).read_text(encoding="utf-8"))
         failures = check_baseline(result, baseline, dataset_hash)
         if failures:
             print("REGRESSION: " + "; ".join(failures))

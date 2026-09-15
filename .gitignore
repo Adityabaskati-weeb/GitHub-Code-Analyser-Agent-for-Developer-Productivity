@@ -8,6 +8,7 @@ __pycache__/
 .mypy_cache/
 .ruff_cache/
 .tmp/
+work/
 
 # Disk cache (auto-populated at runtime)
 .cache/

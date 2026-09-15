@@ -23,6 +23,37 @@ def test_local_reader_enforces_limit(tmp_path):
         read_local_repo(str(tmp_path), max_files=1)
 
 
+def test_local_reader_rejects_symlink_escape(tmp_path):
+    outside = tmp_path.parent / (tmp_path.name + "-outside-symlink")
+    outside.mkdir()
+    (outside / "outside.py").write_text("secret = True", encoding="utf-8")
+    link = tmp_path / "linked"
+    try:
+        link.symlink_to(outside, target_is_directory=True)
+    except (OSError, NotImplementedError):
+        pytest.skip("directory symlinks are unavailable")
+    (tmp_path / "inside.py").write_text("value = 1", encoding="utf-8")
+    files = read_local_repo(str(tmp_path))
+    assert [item["path"] for item in files] == ["inside.py"]
+
+
+@pytest.mark.skipif(sys.platform != "win32", reason="junctions are Windows-specific")
+def test_local_reader_rejects_junction_escape_on_windows(tmp_path):
+    outside = tmp_path.parent / (tmp_path.name + "-outside-junction")
+    outside.mkdir()
+    (outside / "outside.py").write_text("secret = True", encoding="utf-8")
+    junction = tmp_path / "junction"
+    result = subprocess.run(
+        ["cmd", "/c", "mklink", "/J", str(junction), str(outside)],
+        capture_output=True, text=True,
+    )
+    if result.returncode != 0 or not junction.exists():
+        pytest.skip("junction creation is unavailable")
+    (tmp_path / "inside.py").write_text("value = 1", encoding="utf-8")
+    files = read_local_repo(str(tmp_path))
+    assert [item["path"] for item in files] == ["inside.py"]
+
+
 def test_missing_directory_rejected(tmp_path):
     with pytest.raises(ValueError, match="does not exist"):
         read_local_repo(str(tmp_path / "missing"))

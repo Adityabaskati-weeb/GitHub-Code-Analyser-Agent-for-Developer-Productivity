@@ -1,0 +1,923 @@
+{
+  "dataset_sha256": "a6c3bd67e9b3696a70c74039714c21aeb7ff90387c63af566a080b3d8bb0e34c",
+  "source_revision": "24d5b624e881cc2ca66a3fd2664be1b2d2d8f5c8",
+  "python": "3.11.15",
+  "platform": "Windows",
+  "scope": "Retrieval on a frozen single-repository corpus; not answer correctness or GitHub file selection.",
+  "config": {
+    "mode": "code",
+    "top_k": 8,
+    "chunking": "python_ast_v1",
+    "max_function_lines": 100,
+    "fallback_chunk_lines": 40,
+    "overlap": 8,
+    "ranking": "identifier_bm25_v1",
+    "context_budget_chars": 18000
+  },
+  "summary": {
+    "questions": 50,
+    "file_recall": 1.0,
+    "reciprocal_rank": 0.857333,
+    "evidence_hit": 0.94,
+    "median_retrieval_ms": 15.684,
+    "p95_retrieval_ms": 17.534
+  },
+  "rows": [
+    {
+      "id": "q01",
+      "question": "How are disk cache filenames derived from URLs?",
+      "file_recall": 1.0,
+      "reciprocal_rank": 1.0,
+      "evidence_hit": 0.0,
+      "retrieval_ms": 18.974,
+      "sources": [
+        "src/cache/disk_cache.py:L64-L67",
+        "src/cache/disk_cache.py:L1-L26",
+        "src/utils/fetch_blob.py:L1-L15",
+        "src/cache/__init__.py:L1-L2",
+        "src/github_repo_parser.py:L1-L16",
+        "src/github_repo_parser.py:L99-L153",
+        "src/utils/fetch_blob.py:L16-L43",
+        "src/nodes/global_context_node.py:L1-L21"
+      ]
+    },
+    {
+      "id": "q02",
+      "question": "What happens when cached JSON is corrupt?",
+      "file_recall": 1.0,
+      "reciprocal_rank": 1.0,
+      "evidence_hit": 1.0,
+      "retrieval_ms": 16.411,
+      "sources": [
+        "src/cache/disk_cache.py:L53-L61",
+        "src/github_repo_parser.py:L99-L153",
+        "src/cache/disk_cache.py:L70-L72",
+        "src/github_repo_parser.py:L1-L16",
+        "src/cache/disk_cache.py:L40-L50",
+        "src/tools/parse_json_yaml.py:L1-L4",
+        "src/nodes/fetch_and_parse_node.py:L33-L58",
+        "src/tools/parse_json_yaml.py:L5-L28"
+      ]
+    },
+    {
+      "id": "q03",
+      "question": "How can one cached entry be invalidated?",
+      "file_recall": 1.0,
+      "reciprocal_rank": 1.0,
+      "evidence_hit": 1.0,
+      "retrieval_ms": 15.991,
+      "sources": [
+        "src/cache/disk_cache.py:L75-L81",
+        "src/cache/disk_cache.py:L40-L50",
+        "src/retrieval/ranker.py:L1-L36",
+        "src/report/writer.py:L1-L16",
+        "src/utils/fetch_blob.py:L16-L43",
+        "src/cache/disk_cache.py:L1-L26",
+        "langgraph_app.py:L33-L45",
+        "src/cache/disk_cache.py:L53-L61"
+      ]
+    },
+    {
+      "id": "q04",
+      "question": "How is the entire cache cleared?",
+      "file_recall": 1.0,
+      "reciprocal_rank": 1.0,
+      "evidence_hit": 1.0,
+      "retrieval_ms": 15.441,
+      "sources": [
+        "src/cache/disk_cache.py:L84-L87",
+        "src/cache/__init__.py:L1-L2",
+        "src/cache/disk_cache.py:L1-L26",
+        "src/utils/fetch_blob.py:L1-L15",
+        "src/github_repo_parser.py:L1-L16",
+        "src/cache/disk_cache.py:L32-L33",
+        "src/github_repo_parser.py:L99-L153",
+        "src/utils/fetch_blob.py:L16-L43"
+      ]
+    },
+    {
+      "id": "q05",
+      "question": "What encoding is used when saving cached text?",
+      "file_recall": 1.0,
+      "reciprocal_rank": 1.0,
+      "evidence_hit": 1.0,
+      "retrieval_ms": 15.744,
+      "sources": [
+        "src/cache/disk_cache.py:L40-L50",
+        "src/cache/disk_cache.py:L64-L67",
+        "src/utils/fetch_blob.py:L16-L43",
+        "src/retrieval/ranker.py:L1-L36",
+        "src/github_repo_parser.py:L99-L153",
+        "src/nodes/summarize_repo_node.py:L99-L131",
+        "run_cli.py:L190-L282",
+        "src/report/writer.py:L1-L16"
+      ]
+    },
+    {
+      "id": "q06",
+      "question": "What is the timeout when downloading raw file blobs?",
+      "file_recall": 1.0,
+      "reciprocal_rank": 1.0,
+      "evidence_hit": 1.0,
+      "retrieval_ms": 16.192,
+      "sources": [
+        "src/utils/fetch_blob.py:L16-L43",
+        "src/utils/fetch_blob.py:L1-L15",
+        "src/nodes/fetch_and_parse_node.py:L89-L120",
+        "src/cache/disk_cache.py:L1-L26",
+        "src/nodes/global_context_node.py:L1-L21",
+        "src/github_repo_parser.py:L17-L28",
+        "src/tools/parse_notebook.py:L1-L23",
+        "src/nodes/global_context_node.py:L22-L98"
+      ]
+    },
+    {
+      "id": "q07",
+      "question": "What does a raw file download failure return?",
+      "file_recall": 1.0,
+      "reciprocal_rank": 1.0,
+      "evidence_hit": 1.0,
+      "retrieval_ms": 15.959,
+      "sources": [
+        "src/utils/fetch_blob.py:L16-L43",
+        "src/nodes/fetch_and_parse_node.py:L89-L120",
+        "src/tools/parse_notebook.py:L1-L23",
+        "src/tools/parse_python.py:L3-L60",
+        "src/cache/disk_cache.py:L53-L61",
+        "src/tools/parse_json_yaml.py:L5-L28",
+        "src/github_repo_parser.py:L17-L28",
+        "src/utils/fetch_blob.py:L1-L15"
+      ]
+    },
+    {
+      "id": "q08",
+      "question": "How does refresh bypass the blob cache?",
+      "file_recall": 1.0,
+      "reciprocal_rank": 1.0,
+      "evidence_hit": 1.0,
+      "retrieval_ms": 15.659,
+      "sources": [
+        "src/utils/fetch_blob.py:L16-L43",
+        "src/github_repo_parser.py:L99-L153",
+        "state_schema.py:L1-L27",
+        "src/nodes/global_context_node.py:L1-L21",
+        "src/utils/fetch_blob.py:L1-L15",
+        "src/cache/disk_cache.py:L1-L26",
+        "run_cli.py:L92-L124",
+        "run_cli.py:L289-L355"
+      ]
+    },
+    {
+      "id": "q09",
+      "question": "How is a GitHub token attached to metadata requests?",
+      "file_recall": 1.0,
+      "reciprocal_rank": 1.0,
+      "evidence_hit": 1.0,
+      "retrieval_ms": 17.534,
+      "sources": [
+        "src/github_repo_parser.py:L17-L28",
+        "src/github_repo_parser.py:L51-L86",
+        "src/github_repo_parser.py:L1-L16",
+        "src/utils/fetch_blob.py:L1-L15",
+        "requirements.txt:L1-L27",
+        "src/nodes/fetch_repo_metadata_node.py:L5-L66",
+        "src/report/writer.py:L17-L86",
+        "src/nodes/fetch_repo_metadata_node.py:L1-L4"
+      ]
+    },
+    {
+      "id": "q10",
+      "question": "How is the default GitHub branch discovered?",
+      "file_recall": 1.0,
+      "reciprocal_rank": 0.3333333333333333,
+      "evidence_hit": 1.0,
+      "retrieval_ms": 15.918,
+      "sources": [
+        "src/report/writer.py:L17-L86",
+        "run_cli.py:L289-L355",
+        "src/github_repo_parser.py:L99-L153",
+        "src/github_repo_parser.py:L51-L86",
+        "src/github_repo_parser.py:L89-L97",
+        "src/nodes/fetch_repo_metadata_node.py:L5-L66",
+        "run_cli.py:L92-L124",
+        "src/utils/logger.py:L1-L38"
+      ]
+    },
+    {
+      "id": "q11",
+      "question": "What happens when GitHub responds with status 429?",
+      "file_recall": 1.0,
+      "reciprocal_rank": 1.0,
+      "evidence_hit": 1.0,
+      "retrieval_ms": 16.274,
+      "sources": [
+        "src/github_repo_parser.py:L51-L86",
+        "src/utils/fetch_blob.py:L16-L43",
+        "src/__init__.py:L1-L1",
+        "src/github_repo_parser.py:L89-L97",
+        "requirements.txt:L1-L27",
+        "src/report/writer.py:L17-L86",
+        "src/utils/fetch_blob.py:L1-L15",
+        "run_cli.py:L362-L458"
+      ]
+    },
+    {
+      "id": "q12",
+      "question": "Does the tree cache distinguish branches?",
+      "file_recall": 1.0,
+      "reciprocal_rank": 1.0,
+      "evidence_hit": 1.0,
+      "retrieval_ms": 16.025,
+      "sources": [
+        "src/github_repo_parser.py:L99-L153",
+        "src/nodes/fetch_repo_metadata_node.py:L5-L66",
+        "run_cli.py:L92-L124",
+        "state_schema.py:L1-L27",
+        "src/nodes/global_context_node.py:L1-L21",
+        "run_cli.py:L289-L355",
+        "src/github_repo_parser.py:L51-L86",
+        "src/nodes/global_context_node.py:L22-L98"
+      ]
+    },
+    {
+      "id": "q13",
+      "question": "How are subdirectories traversed in the GitHub contents API?",
+      "file_recall": 1.0,
+      "reciprocal_rank": 1.0,
+      "evidence_hit": 1.0,
+      "retrieval_ms": 15.979,
+      "sources": [
+        "src/github_repo_parser.py:L17-L28",
+        "src/github_repo_parser.py:L51-L86",
+        "src/report/writer.py:L17-L86",
+        "src/utils/fetch_blob.py:L1-L15",
+        "src/cache/disk_cache.py:L1-L26",
+        "src/nodes/global_context_node.py:L1-L21",
+        "src/utils/fetch_blob.py:L16-L43",
+        "src/nodes/fetch_repo_metadata_node.py:L5-L66"
+      ]
+    },
+    {
+      "id": "q14",
+      "question": "How is the .git suffix stripped from a repository URL?",
+      "file_recall": 1.0,
+      "reciprocal_rank": 1.0,
+      "evidence_hit": 1.0,
+      "retrieval_ms": 16.641,
+      "sources": [
+        "src/github_repo_parser.py:L36-L48",
+        "src/cache/disk_cache.py:L32-L33",
+        "src/cache/disk_cache.py:L64-L67",
+        "src/nodes/fetch_repo_metadata_node.py:L5-L66",
+        "src/cache/disk_cache.py:L75-L81",
+        "src/cache/disk_cache.py:L40-L50",
+        "src/report/writer.py:L17-L86",
+        "src/cache/disk_cache.py:L70-L72"
+      ]
+    },
+    {
+      "id": "q15",
+      "question": "How are function docstrings extracted from Python?",
+      "file_recall": 1.0,
+      "reciprocal_rank": 1.0,
+      "evidence_hit": 1.0,
+      "retrieval_ms": 15.709,
+      "sources": [
+        "src/tools/parse_python.py:L3-L60",
+        "run_cli.py:L190-L282",
+        "src/nodes/query_analyser_node.py:L47-L56",
+        "src/nodes/query_analyser_node.py:L59-L78",
+        "src/nodes/query_analyser_node.py:L81-L109",
+        ".github/workflows/ci.yml:L1-L38",
+        "src/utils/__init__.py:L1-L1",
+        "src/utils/summarize_state.py:L11-L23"
+      ]
+    },
+    {
+      "id": "q16",
+      "question": "What happens when Python source has invalid syntax?",
+      "file_recall": 1.0,
+      "reciprocal_rank": 0.5,
+      "evidence_hit": 1.0,
+      "retrieval_ms": 16.015,
+      "sources": [
+        ".github/workflows/ci.yml:L1-L38",
+        "src/tools/parse_python.py:L3-L60",
+        "run_cli.py:L362-L458",
+        "src/__init__.py:L1-L1",
+        "src/tools/parse_notebook.py:L1-L23",
+        "run_cli.py:L1-L40",
+        "src/nodes/query_analyser_node.py:L47-L56",
+        "run_cli.py:L289-L355"
+      ]
+    },
+    {
+      "id": "q17",
+      "question": "Does cleaning Python remove full-line comments?",
+      "file_recall": 1.0,
+      "reciprocal_rank": 1.0,
+      "evidence_hit": 1.0,
+      "retrieval_ms": 15.812,
+      "sources": [
+        "src/tools/parse_python.py:L63-L72",
+        "src/tools/parse_markdown.py:L4-L16",
+        "src/tools/parse_python.py:L3-L60",
+        ".github/workflows/ci.yml:L1-L38",
+        "src/github_repo_parser.py:L36-L48",
+        "run_cli.py:L1-L40",
+        "src/nodes/query_analyser_node.py:L47-L56",
+        "run_cli.py:L289-L355"
+      ]
+    },
+    {
+      "id": "q18",
+      "question": "How are class names collected from the Python AST?",
+      "file_recall": 1.0,
+      "reciprocal_rank": 1.0,
+      "evidence_hit": 1.0,
+      "retrieval_ms": 15.763,
+      "sources": [
+        "src/tools/parse_python.py:L3-L60",
+        "src/tools/parse_python.py:L1-L2",
+        "run_cli.py:L289-L355",
+        ".github/workflows/ci.yml:L1-L38",
+        "run_cli.py:L1-L40",
+        "src/github_repo_parser.py:L1-L16",
+        "src/nodes/query_analyser_node.py:L47-L56",
+        "src/tools/parse_python.py:L63-L72"
+      ]
+    },
+    {
+      "id": "q19",
+      "question": "What is the default text chunk size and overlap?",
+      "file_recall": 1.0,
+      "reciprocal_rank": 1.0,
+      "evidence_hit": 1.0,
+      "retrieval_ms": 15.553,
+      "sources": [
+        "src/retrieval/chunker.py:L11-L47",
+        "run_cli.py:L190-L282",
+        "src/nodes/summarize_repo_node.py:L7-L106",
+        "src/retrieval/ranker.py:L105-L135",
+        "src/github_repo_parser.py:L99-L153",
+        "src/retrieval/__init__.py:L1-L3",
+        "src/retrieval/ranker.py:L1-L36",
+        "src/nodes/summarize_repo_node.py:L1-L6"
+      ]
+    },
+    {
+      "id": "q20",
+      "question": "What does the chunker return for empty input?",
+      "file_recall": 1.0,
+      "reciprocal_rank": 0.5,
+      "evidence_hit": 1.0,
+      "retrieval_ms": 17.256,
+      "sources": [
+        "src/utils/fetch_blob.py:L16-L43",
+        "src/retrieval/chunker.py:L1-L10",
+        "src/retrieval/__init__.py:L1-L3",
+        "src/github_repo_parser.py:L36-L48",
+        "src/tools/parse_markdown.py:L4-L16",
+        "src/nodes/summarize_repo_node.py:L1-L6",
+        "src/retrieval/ranker.py:L37-L39",
+        "src/retrieval/chunker.py:L11-L47"
+      ]
+    },
+    {
+      "id": "q21",
+      "question": "How does the chunking window advance?",
+      "file_recall": 1.0,
+      "reciprocal_rank": 0.5,
+      "evidence_hit": 1.0,
+      "retrieval_ms": 15.372,
+      "sources": [
+        "src/retrieval/ranker.py:L67-L79",
+        "src/retrieval/chunker.py:L11-L47",
+        "src/retrieval/ranker.py:L105-L135",
+        "src/nodes/summarize_repo_node.py:L7-L106",
+        "src/retrieval/ranker.py:L86-L98",
+        "src/nodes/summarize_repo_node.py:L1-L6",
+        "src/retrieval/__init__.py:L1-L3",
+        "run_cli.py:L190-L282"
+      ]
+    },
+    {
+      "id": "q22",
+      "question": "How are tokens extracted for lexical ranking?",
+      "file_recall": 1.0,
+      "reciprocal_rank": 1.0,
+      "evidence_hit": 0.0,
+      "retrieval_ms": 15.549,
+      "sources": [
+        "src/retrieval/ranker.py:L67-L79",
+        "run_cli.py:L190-L282",
+        "src/retrieval/ranker.py:L105-L135",
+        "src/nodes/query_analyser_node.py:L47-L56",
+        "src/retrieval/ranker.py:L86-L98",
+        "src/retrieval/ranker.py:L1-L36",
+        "src/config/settings.py:L1-L40",
+        "src/nodes/query_analyser_node.py:L81-L109"
+      ]
+    },
+    {
+      "id": "q23",
+      "question": "Which formula computes inverse document frequency?",
+      "file_recall": 1.0,
+      "reciprocal_rank": 1.0,
+      "evidence_hit": 1.0,
+      "retrieval_ms": 15.709,
+      "sources": [
+        "src/retrieval/ranker.py:L52-L54",
+        "src/retrieval/ranker.py:L47-L49",
+        ".github/workflows/ci.yml:L1-L38",
+        "src/retrieval/ranker.py:L1-L36",
+        "src/nodes/fetch_and_parse_node.py:L1-L40"
+      ]
+    },
+    {
+      "id": "q24",
+      "question": "What does cosine similarity return when no terms are shared?",
+      "file_recall": 1.0,
+      "reciprocal_rank": 1.0,
+      "evidence_hit": 1.0,
+      "retrieval_ms": 15.443,
+      "sources": [
+        "src/retrieval/ranker.py:L1-L36",
+        "src/retrieval/ranker.py:L47-L49",
+        "src/nodes/global_context_node.py:L22-L98",
+        "src/retrieval/ranker.py:L67-L79",
+        "src/retrieval/ranker.py:L57-L64",
+        "src/retrieval/chunker.py:L11-L47",
+        "run_cli.py:L64-L85",
+        "run_cli.py:L184-L189"
+      ]
+    },
+    {
+      "id": "q25",
+      "question": "Which sentence transformer model powers semantic ranking?",
+      "file_recall": 1.0,
+      "reciprocal_rank": 1.0,
+      "evidence_hit": 1.0,
+      "retrieval_ms": 16.083,
+      "sources": [
+        "src/retrieval/ranker.py:L86-L98",
+        "src/retrieval/ranker.py:L1-L36",
+        "src/config/settings.py:L33-L57",
+        "requirements.txt:L1-L27",
+        "src/retrieval/ranker.py:L105-L135",
+        "src/nodes/summarize_repo_node.py:L7-L106",
+        "src/config/settings.py:L1-L40",
+        "src/config/settings.py:L58-L69"
+      ]
+    },
+    {
+      "id": "q26",
+      "question": "How does semantic ranking handle model loading errors?",
+      "file_recall": 1.0,
+      "reciprocal_rank": 1.0,
+      "evidence_hit": 1.0,
+      "retrieval_ms": 16.064,
+      "sources": [
+        "src/retrieval/ranker.py:L86-L98",
+        "src/retrieval/ranker.py:L1-L36",
+        "src/config/settings.py:L1-L40",
+        "src/retrieval/ranker.py:L105-L135",
+        "src/cache/disk_cache.py:L53-L61",
+        "run_cli.py:L190-L282",
+        "src/config/settings.py:L58-L69",
+        "run_cli.py:L362-L458"
+      ]
+    },
+    {
+      "id": "q27",
+      "question": "What bounds the number of concurrently fetched files?",
+      "file_recall": 1.0,
+      "reciprocal_rank": 1.0,
+      "evidence_hit": 1.0,
+      "retrieval_ms": 15.211,
+      "sources": [
+        "src/nodes/fetch_and_parse_node.py:L125-L210",
+        "src/nodes/fetch_and_parse_node.py:L1-L40",
+        "src/github_repo_parser.py:L51-L86",
+        "src/nodes/global_context_node.py:L22-L98",
+        "src/retrieval/chunker.py:L11-L47",
+        "src/config/settings.py:L1-L40",
+        "src/github_repo_parser.py:L17-L28",
+        "src/github_repo_parser.py:L99-L153"
+      ]
+    },
+    {
+      "id": "q28",
+      "question": "How are blocking downloads kept off the async event loop?",
+      "file_recall": 1.0,
+      "reciprocal_rank": 1.0,
+      "evidence_hit": 1.0,
+      "retrieval_ms": 15.723,
+      "sources": [
+        "src/nodes/fetch_and_parse_node.py:L1-L40",
+        "run_cli.py:L154-L183",
+        "src/utils/fetch_blob.py:L16-L43",
+        "src/nodes/analyze_repo_node.py:L33-L44",
+        "run_cli.py:L127-L151",
+        "run_cli.py:L92-L124",
+        "src/nodes/analyze_repo_node.py:L1-L40",
+        "src/nodes/fetch_and_parse_node.py:L89-L120"
+      ]
+    },
+    {
+      "id": "q29",
+      "question": "How are already parsed files excluded from fetching?",
+      "file_recall": 1.0,
+      "reciprocal_rank": 1.0,
+      "evidence_hit": 1.0,
+      "retrieval_ms": 15.251,
+      "sources": [
+        "src/nodes/fetch_and_parse_node.py:L125-L210",
+        "src/nodes/fetch_and_parse_node.py:L89-L120",
+        "src/nodes/fetch_and_parse_node.py:L1-L40",
+        "src/config/settings.py:L33-L57",
+        "src/nodes/summarize_repo_node.py:L7-L106",
+        "src/github_repo_parser.py:L99-L153",
+        "src/github_repo_parser.py:L30-L31",
+        "src/utils/summarize_state.py:L11-L23"
+      ]
+    },
+    {
+      "id": "q30",
+      "question": "How are exceptions from parallel fetch tasks collected?",
+      "file_recall": 1.0,
+      "reciprocal_rank": 1.0,
+      "evidence_hit": 1.0,
+      "retrieval_ms": 15.645,
+      "sources": [
+        "src/nodes/fetch_and_parse_node.py:L125-L210",
+        "src/nodes/fetch_and_parse_node.py:L1-L40",
+        "src/utils/fetch_blob.py:L16-L43",
+        "src/nodes/fetch_repo_metadata_node.py:L5-L66",
+        "src/nodes/global_context_node.py:L22-L98",
+        "langgraph_app.py:L1-L40",
+        "src/nodes/fetch_and_parse_node.py:L89-L120",
+        "langgraph_app.py:L33-L45"
+      ]
+    },
+    {
+      "id": "q31",
+      "question": "Which environment setting disables terminal progress bars?",
+      "file_recall": 1.0,
+      "reciprocal_rank": 0.5,
+      "evidence_hit": 0.0,
+      "retrieval_ms": 17.473,
+      "sources": [
+        "requirements.txt:L1-L27",
+        "src/nodes/fetch_and_parse_node.py:L1-L40",
+        "src/utils/logger.py:L1-L38",
+        "src/nodes/fetch_and_parse_node.py:L89-L120",
+        "run_cli.py:L47-L56",
+        "src/retrieval/ranker.py:L1-L36",
+        "src/nodes/fetch_and_parse_node.py:L125-L210"
+      ]
+    },
+    {
+      "id": "q32",
+      "question": "How much text is kept for an unknown file extension?",
+      "file_recall": 1.0,
+      "reciprocal_rank": 0.2,
+      "evidence_hit": 1.0,
+      "retrieval_ms": 16.17,
+      "sources": [
+        "src/nodes/analyze_repo_node.py:L33-L44",
+        "src/nodes/analyze_repo_node.py:L1-L40",
+        "src/nodes/summarize_repo_node.py:L7-L106",
+        "src/nodes/analyze_repo_node.py:L45-L54",
+        "src/nodes/fetch_and_parse_node.py:L74-L86",
+        "src/report/writer.py:L17-L86",
+        "src/config/settings.py:L33-L57",
+        "src/github_repo_parser.py:L33-L34"
+      ]
+    },
+    {
+      "id": "q33",
+      "question": "How does file selection discard oversized files?",
+      "file_recall": 1.0,
+      "reciprocal_rank": 1.0,
+      "evidence_hit": 1.0,
+      "retrieval_ms": 15.157,
+      "sources": [
+        "src/nodes/analyze_repo_node.py:L115-L211",
+        "src/nodes/analyze_repo_node.py:L1-L40",
+        "src/config/settings.py:L1-L40",
+        "src/utils/flatten_tree.py:L1-L14",
+        "src/report/writer.py:L17-L86",
+        "src/github_repo_parser.py:L51-L86",
+        "src/nodes/summarize_repo_node.py:L7-L106",
+        "src/cache/disk_cache.py:L75-L81"
+      ]
+    },
+    {
+      "id": "q34",
+      "question": "How many points does a query keyword in a file path contribute?",
+      "file_recall": 1.0,
+      "reciprocal_rank": 0.5,
+      "evidence_hit": 1.0,
+      "retrieval_ms": 15.424,
+      "sources": [
+        "src/nodes/summarize_repo_node.py:L99-L131",
+        "src/nodes/analyze_repo_node.py:L115-L211",
+        "src/nodes/analyze_repo_node.py:L57-L112",
+        "src/nodes/summarize_repo_node.py:L7-L106",
+        "src/nodes/query_analyser_node.py:L81-L109",
+        "src/nodes/query_analyser_node.py:L47-L56",
+        "langgraph_app.py:L33-L45",
+        "run_cli.py:L190-L282"
+      ]
+    },
+    {
+      "id": "q35",
+      "question": "How does file selection penalize deeply nested paths?",
+      "file_recall": 1.0,
+      "reciprocal_rank": 0.5,
+      "evidence_hit": 1.0,
+      "retrieval_ms": 15.172,
+      "sources": [
+        "src/utils/flatten_tree.py:L1-L14",
+        "src/nodes/analyze_repo_node.py:L115-L211",
+        "src/nodes/analyze_repo_node.py:L57-L112",
+        "src/github_repo_parser.py:L99-L153",
+        "src/nodes/fetch_and_parse_node.py:L89-L120",
+        "src/nodes/analyze_repo_node.py:L1-L40",
+        "run_cli.py:L190-L282",
+        "src/report/writer.py:L17-L86"
+      ]
+    },
+    {
+      "id": "q36",
+      "question": "How is the maximum number of selected files enforced?",
+      "file_recall": 1.0,
+      "reciprocal_rank": 0.3333333333333333,
+      "evidence_hit": 1.0,
+      "retrieval_ms": 15.42,
+      "sources": [
+        "src/retrieval/chunker.py:L11-L47",
+        "src/retrieval/ranker.py:L105-L135",
+        "src/nodes/analyze_repo_node.py:L115-L211",
+        "src/nodes/fetch_and_parse_node.py:L125-L210",
+        "src/report/writer.py:L17-L86",
+        "src/utils/summarize_state.py:L11-L23",
+        "src/nodes/summarize_repo_node.py:L7-L106",
+        "run_cli.py:L64-L85"
+      ]
+    },
+    {
+      "id": "q37",
+      "question": "How are minified file patterns recognized?",
+      "file_recall": 1.0,
+      "reciprocal_rank": 1.0,
+      "evidence_hit": 1.0,
+      "retrieval_ms": 15.215,
+      "sources": [
+        "src/nodes/analyze_repo_node.py:L45-L54",
+        "src/config/settings.py:L33-L57",
+        "src/nodes/analyze_repo_node.py:L1-L40",
+        "src/config/settings.py:L1-L40",
+        "src/nodes/query_analyser_node.py:L38-L44",
+        "src/nodes/analyze_repo_node.py:L115-L211",
+        "src/nodes/analyze_repo_node.py:L33-L44",
+        "src/nodes/query_analyser_node.py:L1-L37"
+      ]
+    },
+    {
+      "id": "q38",
+      "question": "How are indexing and question answering graphs compiled?",
+      "file_recall": 1.0,
+      "reciprocal_rank": 1.0,
+      "evidence_hit": 1.0,
+      "retrieval_ms": 15.348,
+      "sources": [
+        "langgraph_app.py:L1-L40",
+        "run_cli.py:L362-L458",
+        "run_cli.py:L154-L183",
+        "langgraph_app.py:L33-L45",
+        "run_cli.py:L33-L46",
+        "src/report/writer.py:L17-L86",
+        "run_cli.py:L127-L151",
+        "run_cli.py:L1-L40"
+      ]
+    },
+    {
+      "id": "q39",
+      "question": "Which node starts the question answering graph?",
+      "file_recall": 1.0,
+      "reciprocal_rank": 1.0,
+      "evidence_hit": 1.0,
+      "retrieval_ms": 15.088,
+      "sources": [
+        "langgraph_app.py:L1-L40",
+        "langgraph_app.py:L33-L45",
+        "run_cli.py:L154-L183",
+        "run_cli.py:L362-L458",
+        "src/report/writer.py:L17-L86",
+        "run_cli.py:L127-L151",
+        "src/retrieval/chunker.py:L11-L47",
+        "run_cli.py:L64-L85"
+      ]
+    },
+    {
+      "id": "q40",
+      "question": "Which reducer combines graph messages?",
+      "file_recall": 1.0,
+      "reciprocal_rank": 1.0,
+      "evidence_hit": 1.0,
+      "retrieval_ms": 15.344,
+      "sources": [
+        "state_schema.py:L1-L27",
+        "src/nodes/__init__.py:L1-L1",
+        "langgraph_app.py:L1-L40",
+        "src/nodes/fetch_repo_metadata_node.py:L5-L66",
+        "requirements.txt:L1-L27",
+        "src/nodes/query_analyser_node.py:L81-L109",
+        "src/nodes/fetch_repo_metadata_node.py:L1-L4",
+        "run_cli.py:L33-L46"
+      ]
+    },
+    {
+      "id": "q41",
+      "question": "What is the default top-k retrieval setting?",
+      "file_recall": 1.0,
+      "reciprocal_rank": 0.16666666666666666,
+      "evidence_hit": 1.0,
+      "retrieval_ms": 14.845,
+      "sources": [
+        "src/retrieval/ranker.py:L105-L135",
+        "src/nodes/summarize_repo_node.py:L1-L6",
+        "src/nodes/summarize_repo_node.py:L7-L106",
+        "run_cli.py:L289-L355",
+        "run_cli.py:L362-L458",
+        "src/config/settings.py:L1-L40",
+        "run_cli.py:L127-L151",
+        "run_cli.py:L92-L124"
+      ]
+    },
+    {
+      "id": "q42",
+      "question": "Which Gemini model is the configured default?",
+      "file_recall": 1.0,
+      "reciprocal_rank": 0.5,
+      "evidence_hit": 1.0,
+      "retrieval_ms": 17.689,
+      "sources": [
+        "run_cli.py:L47-L56",
+        "src/config/settings.py:L58-L69",
+        "run_cli.py:L362-L458",
+        "src/config/settings.py:L1-L40",
+        "src/retrieval/ranker.py:L1-L36",
+        "src/retrieval/ranker.py:L86-L98",
+        "src/utils/logger.py:L1-L38",
+        "src/github_repo_parser.py:L89-L97"
+      ]
+    },
+    {
+      "id": "q43",
+      "question": "What error is raised if Gemini API credentials are missing?",
+      "file_recall": 1.0,
+      "reciprocal_rank": 1.0,
+      "evidence_hit": 1.0,
+      "retrieval_ms": 15.353,
+      "sources": [
+        "src/config/settings.py:L58-L69",
+        "run_cli.py:L47-L56",
+        "run_cli.py:L362-L458",
+        "src/cache/disk_cache.py:L75-L81",
+        "src/github_repo_parser.py:L51-L86",
+        "src/github_repo_parser.py:L89-L97",
+        "src/config/settings.py:L1-L40",
+        "src/github_repo_parser.py:L17-L28"
+      ]
+    },
+    {
+      "id": "q44",
+      "question": "Where are Markdown question-answer reports stored?",
+      "file_recall": 1.0,
+      "reciprocal_rank": 0.3333333333333333,
+      "evidence_hit": 1.0,
+      "retrieval_ms": 15.46,
+      "sources": [
+        "run_cli.py:L64-L85",
+        "run_cli.py:L154-L183",
+        "src/report/writer.py:L17-L86",
+        "src/report/writer.py:L1-L16",
+        "run_cli.py:L362-L458",
+        "run_cli.py:L1-L40",
+        "run_cli.py:L289-L355",
+        "run_cli.py:L127-L151"
+      ]
+    },
+    {
+      "id": "q45",
+      "question": "Which timezone is used for report timestamps?",
+      "file_recall": 1.0,
+      "reciprocal_rank": 1.0,
+      "evidence_hit": 1.0,
+      "retrieval_ms": 14.957,
+      "sources": [
+        "src/report/writer.py:L17-L86",
+        "src/report/writer.py:L1-L16",
+        "run_cli.py:L64-L85",
+        "src/report/__init__.py:L1-L2",
+        "run_cli.py:L154-L183",
+        "run_cli.py:L1-L40",
+        "src/nodes/query_analyser_node.py:L1-L37",
+        "run_cli.py:L289-L355"
+      ]
+    },
+    {
+      "id": "q46",
+      "question": "How many key files contribute global context snippets?",
+      "file_recall": 1.0,
+      "reciprocal_rank": 1.0,
+      "evidence_hit": 1.0,
+      "retrieval_ms": 15.52,
+      "sources": [
+        "src/nodes/global_context_node.py:L22-L98",
+        "src/nodes/global_context_node.py:L1-L21",
+        "src/nodes/summarize_repo_node.py:L7-L106",
+        "run_cli.py:L92-L124",
+        "src/nodes/summarize_repo_node.py:L99-L131",
+        "langgraph_app.py:L1-L40",
+        "state_schema.py:L1-L27",
+        "src/config/settings.py:L1-L40"
+      ]
+    },
+    {
+      "id": "q47",
+      "question": "How many lines are read from each global context file?",
+      "file_recall": 1.0,
+      "reciprocal_rank": 1.0,
+      "evidence_hit": 1.0,
+      "retrieval_ms": 15.378,
+      "sources": [
+        "src/nodes/global_context_node.py:L22-L98",
+        "src/nodes/summarize_repo_node.py:L99-L131",
+        "src/nodes/summarize_repo_node.py:L7-L106",
+        "langgraph_app.py:L1-L40",
+        "src/nodes/global_context_node.py:L1-L21",
+        "src/report/writer.py:L17-L86",
+        "run_cli.py:L92-L124",
+        "src/tools/parse_notebook.py:L1-L23"
+      ]
+    },
+    {
+      "id": "q48",
+      "question": "How does the interactive CLI recognize a request to quit?",
+      "file_recall": 1.0,
+      "reciprocal_rank": 1.0,
+      "evidence_hit": 1.0,
+      "retrieval_ms": 15.64,
+      "sources": [
+        "run_cli.py:L154-L183",
+        "run_cli.py:L1-L40",
+        ".github/workflows/ci.yml:L1-L38",
+        "run_cli.py:L289-L355",
+        "src/utils/fetch_blob.py:L1-L15",
+        "src/github_repo_parser.py:L1-L16",
+        "src/github_repo_parser.py:L17-L28",
+        "run_cli.py:L362-L458"
+      ]
+    },
+    {
+      "id": "q49",
+      "question": "Which Python versions does CI test?",
+      "file_recall": 1.0,
+      "reciprocal_rank": 1.0,
+      "evidence_hit": 1.0,
+      "retrieval_ms": 15.06,
+      "sources": [
+        ".github/workflows/ci.yml:L1-L38",
+        "run_cli.py:L1-L40",
+        "run_cli.py:L289-L355",
+        "src/nodes/fetch_and_parse_node.py:L1-L40",
+        "run_cli.py:L362-L458",
+        "run_cli.py:L184-L189",
+        "run_cli.py:L190-L282",
+        "src/tools/parse_notebook.py:L1-L23"
+      ]
+    },
+    {
+      "id": "q50",
+      "question": "How does CI run the smoke test without an API key?",
+      "file_recall": 1.0,
+      "reciprocal_rank": 1.0,
+      "evidence_hit": 1.0,
+      "retrieval_ms": 16.705,
+      "sources": [
+        ".github/workflows/ci.yml:L1-L38",
+        "run_cli.py:L184-L189",
+        "run_cli.py:L362-L458",
+        "run_cli.py:L1-L40",
+        "run_cli.py:L289-L355",
+        "run_cli.py:L47-L56",
+        "src/config/settings.py:L58-L69",
+        "run_cli.py:L190-L282"
+      ]
+    }
+  ]
+}

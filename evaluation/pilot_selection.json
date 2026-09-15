@@ -1,0 +1,7 @@
+{
+  "decision_date": "2026-09-13",
+  "scope": "Systematically selected development pilot; not blind or held out. Existing candidate outputs had already been inspected.",
+  "selection_rule": "One-based position floor((i + 0.5) * 50 / 12) + 1 for i = 0..11 in existing question order; no filtering by prior answer scores.",
+  "question_ids": ["q03", "q07", "q11", "q15", "q19", "q23", "q28", "q32", "q36", "q40", "q44", "q48"],
+  "reuse": "Use the same ordered IDs for both candidate pilots."
+}

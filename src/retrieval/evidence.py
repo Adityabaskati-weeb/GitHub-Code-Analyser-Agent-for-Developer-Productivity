@@ -45,6 +45,9 @@ def build_chunks(files: list[dict], chunk_lines: int = 40, overlap: int = 8):
 
 def retrieve(query: str, files: list[dict], top_k: int = 8, mode: str = "lexical",
              chunk_lines: int = 40, overlap: int = 8):
+    if mode in {"code", "code_compact"}:
+        from src.retrieval.code_search import search
+        return search(query, files, top_k)
     chunks = build_chunks(files, chunk_lines, overlap)
     by_text = {chunk.render(): chunk for chunk in chunks}
     ranked = rank_chunks(query, list(by_text), top_k=top_k, mode=mode)
